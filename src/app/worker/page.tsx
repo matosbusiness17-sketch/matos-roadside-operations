@@ -1,7 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { getCurrentUser } from '@/lib/auth/get-user';
 
-export default function WorkerPage() {
+export default async function WorkerPage() {
+  const authContext = await getCurrentUser();
+  const profile = authContext?.profile;
+  const organization = authContext?.organization;
+
   return (
     <div className="space-y-4">
       <div className="border-b border-slate-200 pb-3">
@@ -19,25 +24,37 @@ export default function WorkerPage() {
       <Card className="border-slate-200 bg-slate-50/50">
         <CardHeader className="p-4">
           <CardTitle className="text-xs font-semibold text-slate-800 uppercase tracking-wider">
-            Worker State & Readiness
+            Worker Identity & Session
           </CardTitle>
           <CardDescription className="text-[11px]">
-            Phase 1 structural foundation — standby mode
+            Phase 2 authenticated profile state
           </CardDescription>
         </CardHeader>
         <CardContent className="p-4 pt-0 space-y-3">
           <div className="rounded border border-slate-200 bg-white p-3 text-xs text-slate-600 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="font-medium text-slate-700">Surface Role:</span>
-              <span className="text-slate-900 font-semibold">Mobile Response Worker</span>
+              <span className="font-medium text-slate-700">Authenticated Name:</span>
+              <span className="text-slate-900 font-semibold">
+                {profile?.display_name ?? 'Standby Worker (Unauthenticated)'}
+              </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="font-medium text-slate-700">Shell Status:</span>
-              <Badge variant="success" className="text-[10px]">Ready (Phase 1)</Badge>
+              <span className="font-medium text-slate-700">Role:</span>
+              <Badge variant="primary" className="text-[10px] font-mono">
+                {profile?.role ?? 'worker'}
+              </Badge>
             </div>
             <div className="flex items-center justify-between">
-              <span className="font-medium text-slate-700">Realtime Dispatch:</span>
-              <span className="text-slate-400 text-[11px]">Standby (Phase 7)</span>
+              <span className="font-medium text-slate-700">Organization:</span>
+              <span className="text-slate-800 font-medium">
+                {organization?.name ?? 'Dev Demonstration Org'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-slate-700">RLS Access Scope:</span>
+              <Badge variant="success" className="text-[10px]">
+                Restricted to Assigned Incidents
+              </Badge>
             </div>
           </div>
         </CardContent>

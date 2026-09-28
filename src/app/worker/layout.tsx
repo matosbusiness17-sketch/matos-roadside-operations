@@ -1,20 +1,27 @@
 import { WorkerHeader } from '@/components/worker/worker-header';
+import { getCurrentUser } from '@/lib/auth/get-user';
 
 export const metadata = {
   title: 'Worker Portal | Matos Systems Roadside',
   description: 'Mobile-first field worker operational interface.',
 };
 
-export default function WorkerLayout({
+export default async function WorkerLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const authContext = await getCurrentUser();
+
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col justify-start">
       {/* Mobile-first centered container */}
       <div className="w-full max-w-md mx-auto min-h-screen bg-white border-x border-slate-200 flex flex-col shadow-sm">
-        <WorkerHeader />
+        <WorkerHeader
+          user={authContext?.user}
+          profile={authContext?.profile}
+          organization={authContext?.organization}
+        />
         <main className="flex-1 p-4 sm:p-5 flex flex-col">
           {children}
         </main>
