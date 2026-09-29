@@ -12,6 +12,7 @@ const supabasePublicKey =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
   '';
+const mapboxAccessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? '';
 
 export const env = {
   supabase: {
@@ -21,6 +22,14 @@ export const env = {
       supabaseUrl &&
       supabasePublicKey &&
       !supabaseUrl.includes('placeholder')
+    ),
+  },
+  mapbox: {
+    accessToken: mapboxAccessToken,
+    isConfigured: Boolean(
+      mapboxAccessToken &&
+      !mapboxAccessToken.includes('placeholder') &&
+      mapboxAccessToken.trim().length > 0
     ),
   },
   app: {

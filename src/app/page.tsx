@@ -8,7 +8,7 @@ export default function Home() {
     {
       name: 'Operations Workspace',
       path: '/operations',
-      desc: 'Three-region operational workspace shell (Queue, Map, Dispatch Panel).',
+      desc: 'Unified three-region operational mapping workspace (Queue, PostGIS Map, Detail Panel).',
       badge: 'Core Workspace',
       access: 'Admin & Operator (Statically Verified)',
     },
@@ -82,11 +82,11 @@ export default function Home() {
             <div className="flex items-center gap-2">
               <span className="font-bold text-base sm:text-lg tracking-tight">MATOS SYSTEMS</span>
               <Badge variant="outline" className="border-slate-700 bg-slate-800 text-slate-300 text-[10px] font-mono">
-                PHASE 4 STATE MACHINE
+                PHASE 5 OPERATIONAL MAPPING
               </Badge>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
-              Roadside Operations & Dispatch System — Incident Management & Operational State Machine
+              Roadside Operations & Dispatch System — Operational Mapping & Fleet Telemetry Foundation
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -109,7 +109,7 @@ export default function Home() {
               Application Architecture & Security Boundaries
             </h1>
             <p className="text-xs text-slate-600 mt-1 max-w-3xl">
-              Phase 4 establishes an authoritative 10-state incident lifecycle state machine, concurrency-safe reference allocation with PostgreSQL advisory locks, closed direct mutation RLS paths, database-guarded status transitions, and real database-backed operator queue, intake, and detail record inspection.
+              Phase 5 establishes the authoritative operational mapping workspace (/operations) with read-only operational snapshot RPC, aggregate-level deterministic incident and vehicle ordering, PostGIS coordinate derivation, fail-closed data validation without data fabrication, and real filter-driven selection clearing.
             </p>
           </div>
 
@@ -118,7 +118,7 @@ export default function Home() {
               <span className="text-slate-500 font-medium">Implementation Status</span>
               <div className="font-semibold text-slate-900 flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 inline-block" />
-                Phase 4 Complete — Statically Verified (170 passed / 0 failed)
+                Phase 5 Complete — Statically Verified (257 passed / 0 failed)
               </div>
             </div>
             <div className="rounded border border-slate-200 bg-white p-3 space-y-1">
@@ -132,9 +132,9 @@ export default function Home() {
               </div>
             </div>
             <div className="rounded border border-slate-200 bg-white p-3 space-y-1">
-              <span className="text-slate-500 font-medium">State Machine & Security Model</span>
+              <span className="text-slate-500 font-medium">State Machine & Operational Workspace</span>
               <div className="font-semibold text-slate-900">
-                10-State Machine + Controlled RPC Mutations
+                Operational Snapshot RPC + Synchronized Workspace
               </div>
             </div>
           </div>
@@ -227,32 +227,32 @@ export default function Home() {
           <Card className="border-slate-200 bg-white">
             <CardHeader className="p-5">
               <CardTitle className="text-sm font-semibold text-slate-900">
-                Phase 4 Architecture & Static Verification Summary
+                Phase 5 Architecture & Static Verification Summary
               </CardTitle>
               <CardDescription className="text-xs">
-                Static verification suites validate Phase 2 auth/security boundaries (89 checks passed), Phase 3 spatial/capability extensions (95 checks passed), and Phase 4 incident state machine (170 checks passed). Database verification script provided at <code className="font-mono">supabase/verify_phase4.sql</code> for manual Supabase SQL Editor execution (provided but not executed in this environment).
+                Static verification suites validate Phase 2 auth/security boundaries (89 checks passed), Phase 3 spatial/capability extensions (95 checks passed), Phase 4 incident state machine (170 checks passed), and Phase 5 operational mapping & fleet telemetry foundation (257 checks passed). Database structural verification script provided at <code className="font-mono">supabase/verify_phase5.sql</code> for manual Supabase SQL Editor execution (provided for manual execution; not executed live in this environment).
               </CardDescription>
             </CardHeader>
             <CardContent className="p-5 pt-0 space-y-3 text-xs text-slate-600 leading-normal">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
                 <div className="rounded border border-emerald-200 bg-emerald-50/50 p-3">
                   <span className="font-semibold text-emerald-900 block mb-1">
-                    ✓ Statically Verified Foundations (89 Phase 2 + 95 Phase 3 + 170 Phase 4 Checks)
+                    ✓ Statically Verified Foundations (89 P2 + 95 P3 + 170 P4 + 257 P5 Checks)
                   </span>
                   <ul className="list-disc list-inside space-y-0.5 text-emerald-800 text-[11px]">
-                    <li>Authoritative 10-state incident lifecycle (new, triaged, ready_for_dispatch, dispatched, en_route, on_scene, in_progress, completed, cancelled, unable_to_complete)</li>
-                    <li>Old check dropped before row migration; created rows migrated to new; default set to new</li>
-                    <li>Concurrency-safe reference number generator (pg_advisory_xact_lock serialized by org & calendar year)</li>
-                    <li>Reference generator revoked from public, authenticated, and anon (internal helper)</li>
-                    <li>Direct incident INSERT policy dropped; creation controlled exclusively via create_incident RPC</li>
-                    <li>Direct incident UPDATE policies dropped; mutations controlled exclusively via transition_incident_status RPC</li>
-                    <li>Direct operational_events INSERT policy dropped to prevent audit log forgery</li>
-                    <li>Operational events update and delete blocked by immutable database trigger</li>
-                    <li>Incident status transitions guarded by trg_protect_incident_status trigger</li>
-                    <li>Locked transition matrix enforced with FOR UPDATE concurrency row locking</li>
-                    <li>Strict database intake validation for coordinates, accuracy, vehicle year, and operator_manual provenance</li>
-                    <li>Real database-backed incident queue (/incidents), intake (/incidents/new), and detail (/incidents/[id])</li>
-                    <li>Fail-closed Next.js middleware and server-side layout defense in depth</li>
+                    <li>Authoritative read-only operational snapshot RPC (<code className="font-mono">get_operations_map_snapshot()</code>)</li>
+                    <li>Aggregate-level deterministic incident ordering (priority critical &gt; high &gt; standard &gt; low, oldest created_at ASC, id ASC inside jsonb_agg)</li>
+                    <li>Aggregate-level deterministic vehicle ordering (callsign ASC, id ASC inside jsonb_agg)</li>
+                    <li>Session-derived tenancy and role check strictly permitting admin and operator roles only (worker access rejected)</li>
+                    <li>Exact 7 active operational incident statuses returned; terminal statuses (completed, cancelled, unable_to_complete) strictly excluded</li>
+                    <li>Active fleet scoping (is_active = true) with capability aggregation from service_capabilities</li>
+                    <li>PostGIS coordinate derivation via ST_X/ST_Y with missing-location tolerance for unmapped entities</li>
+                    <li>Execution revoked from PUBLIC and anon; granted exclusively to authenticated</li>
+                    <li>Fail-closed data validation in data.ts with zero timestamp or phone fabrication</li>
+                    <li>Unified three-region operational workspace (/operations) synchronizing queue, map, and context panel</li>
+                    <li>Real filter-driven selection clearing: hidden incidents are cleared from state rather than merely masked</li>
+                    <li>Truthful last-known location telemetry: vehicle positions show the latest stored location and are not a live GPS feed</li>
+                    <li>Non-destructive manual refresh action with error retention and zero polling/WebSockets</li>
                   </ul>
                 </div>
 
@@ -261,13 +261,13 @@ export default function Home() {
                     ⊗ Boundary Policy & Deferred Phases
                   </span>
                   <ul className="list-disc list-inside space-y-0.5 text-slate-600 text-[11px]">
-                    <li><strong>Allowed:</strong> Real database incident records, server-action mutations, and synthetic development seed</li>
-                    <li><strong>Prohibited:</strong> Fabricated production customer data, fake KPIs, or invented performance claims</li>
-                    <li>Mapbox operational map and live telemetry layer (Phase 5 — Deferred)</li>
-                    <li>Capability-matching dispatch engine & scoring/ranking (Phase 6 — Deferred)</li>
+                    <li><strong>Allowed:</strong> Read-only operational map snapshots, server-action refresh, and synthetic development seed</li>
+                    <li><strong>Prohibited:</strong> Live GPS streaming, worker geolocation broadcasting, automatic polling, or data fabrication</li>
+                    <li>Capability-matching dispatch engine, automatic assignment & scoring/ranking (Phase 6 — Deferred)</li>
                     <li>Worker PWA, offline sync & device GPS broadcast (Phase 7 — Deferred)</li>
                     <li>Customer GPS capture & token lookup (Phase 8 — Deferred)</li>
                     <li>Twilio / Vapi telephony & automated intake (Phase 9 — Deferred)</li>
+                    <li>Final production hardening, audit log exports & deployment (Phase 10 — Deferred)</li>
                   </ul>
                 </div>
               </div>
@@ -278,7 +278,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-white py-4 px-6 text-center text-xs text-slate-500">
-        Matos Systems — Roadside Assistance Operations & Dispatch System • Phase 4 Operational State Machine
+        Matos Systems — Roadside Assistance Operations & Dispatch System • Phase 5 Operational Mapping & Fleet Telemetry Foundation
       </footer>
     </div>
   );

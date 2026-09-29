@@ -3,6 +3,7 @@
  * Phase 2: Database, Tenancy, Authentication & Roles
  * Phase 3: Spatial Extensions & Capability Architecture
  * Phase 4: Incident Management & Operational State Machine
+ * Phase 5: Operational Mapping & Fleet Telemetry Foundation
  */
 
 export type UserRole = 'admin' | 'operator' | 'worker';
@@ -269,3 +270,79 @@ export interface TransitionIncidentResult {
   event_id?: string;
   error?: string;
 }
+
+/**
+ * Phase 5: Operational Mapping & Fleet Telemetry Foundation Types
+ */
+
+export interface OperationsCapabilitySummary {
+  id: string;
+  code: string;
+  name: string;
+}
+
+export interface OperationsIncident {
+  id: string;
+  reference_number: string;
+  status: IncidentStatus;
+  priority: IncidentPriority;
+  service_type: ServiceType;
+  customer_name: string;
+  customer_phone: string;
+  location_address: string;
+  latitude: number | null;
+  longitude: number | null;
+  location_accuracy: number | null;
+  location_source: LocationSource | string | null;
+  required_capability: OperationsCapabilitySummary | null;
+  vehicle_registration: string | null;
+  vehicle_make: string | null;
+  vehicle_model: string | null;
+  vehicle_year: number | null;
+  vehicle_color: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OperationsVehicle {
+  id: string;
+  callsign: string;
+  registration_number: string | null;
+  is_active: boolean;
+  latitude: number | null;
+  longitude: number | null;
+  location_updated_at: string | null;
+  capabilities: OperationsCapabilitySummary[];
+}
+
+export interface OperationsSnapshot {
+  generated_at: string;
+  incidents: OperationsIncident[];
+  vehicles: OperationsVehicle[];
+}
+
+export type OperationsSelection =
+  | { type: 'incident'; id: string }
+  | { type: 'vehicle'; id: string }
+  | null;
+
+export type OperationsSnapshotErrorCode =
+  | 'UNAUTHORIZED'
+  | 'FORBIDDEN'
+  | 'SNAPSHOT_UNAVAILABLE'
+  | 'INVALID_SNAPSHOT';
+
+export type OperationsSnapshotResult =
+  | {
+      success: true;
+      snapshot: OperationsSnapshot;
+    }
+  | {
+      success: false;
+      error: {
+        code: OperationsSnapshotErrorCode;
+        message: string;
+      };
+    };
+
