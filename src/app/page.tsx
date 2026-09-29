@@ -15,7 +15,14 @@ export default function Home() {
     {
       name: 'Incident Management',
       path: '/incidents',
-      desc: 'Incident queues, intake records, triage status, and SLA tracking shell.',
+      desc: 'Real database-backed operational incident queue with lifecycle and status filters.',
+      badge: 'Operator',
+      access: 'Admin & Operator (Statically Verified)',
+    },
+    {
+      name: 'New Incident Intake',
+      path: '/incidents/new',
+      desc: 'Controlled incident creation form with database capabilities and location validation.',
       badge: 'Operator',
       access: 'Admin & Operator (Statically Verified)',
     },
@@ -75,11 +82,11 @@ export default function Home() {
             <div className="flex items-center gap-2">
               <span className="font-bold text-base sm:text-lg tracking-tight">MATOS SYSTEMS</span>
               <Badge variant="outline" className="border-slate-700 bg-slate-800 text-slate-300 text-[10px] font-mono">
-                PHASE 2 FOUNDATION
+                PHASE 4 STATE MACHINE
               </Badge>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
-              Roadside Operations & Dispatch System — Tenancy, Auth & RLS
+              Roadside Operations & Dispatch System — Incident Management & Operational State Machine
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -102,7 +109,7 @@ export default function Home() {
               Application Architecture & Security Boundaries
             </h1>
             <p className="text-xs text-slate-600 mt-1 max-w-3xl">
-              Phase 2 establishes the core database schema, organization multi-tenancy, authenticated profiles, explicit role authorization (admin, operator, worker), Row Level Security (RLS), and fail-closed route boundaries enforced at both middleware and server component layers.
+              Phase 4 establishes an authoritative 10-state incident lifecycle state machine, concurrency-safe reference allocation with PostgreSQL advisory locks, closed direct mutation RLS paths, database-guarded status transitions, and real database-backed operator queue, intake, and detail record inspection.
             </p>
           </div>
 
@@ -111,7 +118,7 @@ export default function Home() {
               <span className="text-slate-500 font-medium">Implementation Status</span>
               <div className="font-semibold text-slate-900 flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 inline-block" />
-                Phase 2 Foundation (Statically Verified)
+                Phase 4 Complete — Statically Verified (170 passed / 0 failed)
               </div>
             </div>
             <div className="rounded border border-slate-200 bg-white p-3 space-y-1">
@@ -125,9 +132,9 @@ export default function Home() {
               </div>
             </div>
             <div className="rounded border border-slate-200 bg-white p-3 space-y-1">
-              <span className="text-slate-500 font-medium">Authorization Boundary</span>
+              <span className="text-slate-500 font-medium">State Machine & Security Model</span>
               <div className="font-semibold text-slate-900">
-                Fail-Closed Gating + Database RLS
+                10-State Machine + Controlled RPC Mutations
               </div>
             </div>
           </div>
@@ -215,52 +222,52 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Phase 2 Architecture & Security Documentation */}
+        {/* Architecture & Verification Summary */}
         <section>
           <Card className="border-slate-200 bg-white">
             <CardHeader className="p-5">
               <CardTitle className="text-sm font-semibold text-slate-900">
-                Phase 2 Architecture & Static Verification Summary
+                Phase 4 Architecture & Static Verification Summary
               </CardTitle>
               <CardDescription className="text-xs">
-                Static verification suite at <code className="font-mono">tests/security-verification.mjs</code> validates that authorization boundaries strictly fail closed.
+                Static verification suites validate Phase 2 auth/security boundaries (89 checks passed), Phase 3 spatial/capability extensions (95 checks passed), and Phase 4 incident state machine (170 checks passed). Database verification script provided at <code className="font-mono">supabase/verify_phase4.sql</code> for manual Supabase SQL Editor execution (provided but not executed in this environment).
               </CardDescription>
             </CardHeader>
             <CardContent className="p-5 pt-0 space-y-3 text-xs text-slate-600 leading-normal">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
                 <div className="rounded border border-emerald-200 bg-emerald-50/50 p-3">
                   <span className="font-semibold text-emerald-900 block mb-1">
-                    ✓ Statically Verified Fail-Closed Controls
+                    ✓ Statically Verified Foundations (89 Phase 2 + 95 Phase 3 + 170 Phase 4 Checks)
                   </span>
                   <ul className="list-disc list-inside space-y-0.5 text-emerald-800 text-[11px]">
-                    <li>Protected routes fail closed on missing/invalid Supabase configuration</li>
-                    <li>Protected routes fail closed for unauthenticated requests</li>
-                    <li>Protected routes fail closed on profile query error or null profile</li>
-                    <li>Protected routes fail closed on inactive user profiles</li>
-                    <li>Protected routes fail closed on undefined, null, or unknown roles</li>
-                    <li>Workers strictly blocked from operator desktop routes</li>
-                    <li>Operators strictly blocked from /admin (Admin role required)</li>
-                    <li>Admins and operators blocked from /worker (authorized worker required)</li>
-                    <li>Operator navigation dynamically filters out Admin link for non-admins</li>
-                    <li>Worker components render genuine session; no fabricated identities</li>
-                    <li>Login form populates demo email only; manual password entry required</li>
-                    <li>Zero hardcoded demo passwords across entire source codebase</li>
-                    <li>8 Core tables with PostgreSQL enum <code className="font-mono">app_role</code> and RLS enabled</li>
+                    <li>Authoritative 10-state incident lifecycle (new, triaged, ready_for_dispatch, dispatched, en_route, on_scene, in_progress, completed, cancelled, unable_to_complete)</li>
+                    <li>Old check dropped before row migration; created rows migrated to new; default set to new</li>
+                    <li>Concurrency-safe reference number generator (pg_advisory_xact_lock serialized by org & calendar year)</li>
+                    <li>Reference generator revoked from public, authenticated, and anon (internal helper)</li>
+                    <li>Direct incident INSERT policy dropped; creation controlled exclusively via create_incident RPC</li>
+                    <li>Direct incident UPDATE policies dropped; mutations controlled exclusively via transition_incident_status RPC</li>
+                    <li>Direct operational_events INSERT policy dropped to prevent audit log forgery</li>
+                    <li>Operational events update and delete blocked by immutable database trigger</li>
+                    <li>Incident status transitions guarded by trg_protect_incident_status trigger</li>
+                    <li>Locked transition matrix enforced with FOR UPDATE concurrency row locking</li>
+                    <li>Strict database intake validation for coordinates, accuracy, vehicle year, and operator_manual provenance</li>
+                    <li>Real database-backed incident queue (/incidents), intake (/incidents/new), and detail (/incidents/[id])</li>
+                    <li>Fail-closed Next.js middleware and server-side layout defense in depth</li>
                   </ul>
                 </div>
 
                 <div className="rounded border border-slate-200 bg-slate-50 p-3">
                   <span className="font-semibold text-slate-900 block mb-1">
-                    ⊗ Strictly Deferred to Subsequent Phases
+                    ⊗ Boundary Policy & Deferred Phases
                   </span>
                   <ul className="list-disc list-inside space-y-0.5 text-slate-600 text-[11px]">
-                    <li>Live operational incident queue workflows & UI (Phase 4)</li>
-                    <li>Mapbox operational map and telemetry layer (Phase 5)</li>
-                    <li>Dispatch matching engine & PostGIS spatial calculations (Phase 6)</li>
-                    <li>Worker PWA, offline sync & device GPS broadcast (Phase 7)</li>
-                    <li>Customer GPS capture & token lookup (Phase 8)</li>
-                    <li>Twilio / Vapi telephony & automated intake (Phase 9)</li>
-                    <li>Simulated or mock operational data, coordinates, or KPIs</li>
+                    <li><strong>Allowed:</strong> Real database incident records, server-action mutations, and synthetic development seed</li>
+                    <li><strong>Prohibited:</strong> Fabricated production customer data, fake KPIs, or invented performance claims</li>
+                    <li>Mapbox operational map and live telemetry layer (Phase 5 — Deferred)</li>
+                    <li>Capability-matching dispatch engine & scoring/ranking (Phase 6 — Deferred)</li>
+                    <li>Worker PWA, offline sync & device GPS broadcast (Phase 7 — Deferred)</li>
+                    <li>Customer GPS capture & token lookup (Phase 8 — Deferred)</li>
+                    <li>Twilio / Vapi telephony & automated intake (Phase 9 — Deferred)</li>
                   </ul>
                 </div>
               </div>
@@ -271,7 +278,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-white py-4 px-6 text-center text-xs text-slate-500">
-        Matos Systems — Roadside Assistance Operations & Dispatch System • Phase 2 Tenancy, Auth & Security
+        Matos Systems — Roadside Assistance Operations & Dispatch System • Phase 4 Operational State Machine
       </footer>
     </div>
   );
