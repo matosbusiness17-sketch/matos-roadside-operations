@@ -4,13 +4,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { UserRole } from '@/types';
-import { Badge } from '@/components/ui/badge';
 
 interface NavItem {
   name: string;
   href: string;
   description: string;
-  requiredRole?: UserRole[];
+  requiredRole?: UserRole;
   icon: (props: { className?: string }) => React.JSX.Element;
 }
 
@@ -59,7 +58,7 @@ const navItems: NavItem[] = [
     name: 'Admin',
     href: '/admin',
     description: 'Organization settings and access',
-    requiredRole: ['admin'],
+    requiredRole: 'admin',
     icon: ({ className }) => (
       <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -73,19 +72,21 @@ interface OperatorNavProps {
   userRole?: UserRole;
 }
 
-export function OperatorNav({ userRole = 'admin' }: OperatorNavProps) {
+export function OperatorNav({ userRole }: OperatorNavProps) {
   const pathname = usePathname();
 
-  // Filter items: if an item requires 'admin', only show it if userRole is 'admin' or in dev preview mode
+  // Fail-closed: Admin route renders ONLY when userRole is explicitly 'admin'.
+  // Missing, undefined, or non-admin roles strictly omit the Admin navigation item.
   const visibleItems = navItems.filter((item) => {
-    if (!item.requiredRole) return true;
-    if (userRole === 'admin') return true;
-    return false;
+    if (item.requiredRole === 'admin') {
+      return userRole === 'admin';
+    }
+    return true;
   });
 
   return (
     <nav className="bg-white border-b border-slate-200 px-4 sm:px-6">
-      <div className="flex space-x-1 sm:space-x-4 overflow-x-auto py-2 items-center">
+      <div className="flex space-x-1 sm:space-x-4 overflow-x-auto py-2">
         {visibleItems.map((item) => {
           const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`);
           const Icon = item.icon;
@@ -104,11 +105,6 @@ export function OperatorNav({ userRole = 'admin' }: OperatorNavProps) {
             >
               <Icon className={cn('h-4 w-4', isActive ? 'text-slate-900' : 'text-slate-500')} />
               <span>{item.name}</span>
-              {item.requiredRole?.includes('admin') && (
-                <Badge variant="outline" className="text-[9px] uppercase font-mono py-0 px-1 border-slate-300 text-slate-500">
-                  Admin
-                </Badge>
-              )}
             </Link>
           );
         })}

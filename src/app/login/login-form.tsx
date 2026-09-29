@@ -42,7 +42,7 @@ export function LoginForm({ initialRedirectTo = '', initialError = '' }: LoginFo
 
     if (!env.supabase.isConfigured) {
       setErrorMessage(
-        'Supabase is not configured. Please ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set in .env.local.'
+        'Supabase is not configured. Please ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set in .env.local at the project root.'
       );
       return;
     }
@@ -72,7 +72,7 @@ export function LoginForm({ initialRedirectTo = '', initialError = '' }: LoginFo
       if (profileError || !profile) {
         await supabase.auth.signOut();
         setErrorMessage(
-          'No operational profile found for this account. Contact your administrator to run the provisioning script.'
+          'No operational profile found for this account. Contact your administrator.'
         );
         setLoading(false);
         return;
@@ -110,9 +110,9 @@ export function LoginForm({ initialRedirectTo = '', initialError = '' }: LoginFo
     }
   }
 
-  function fillDemo(demoEmail: string) {
+  // Fills the operational email only; password must be entered manually by the user
+  function fillDemoEmail(demoEmail: string) {
     setEmail(demoEmail);
-    setPassword('DemoPassword123!');
   }
 
   return (
@@ -128,7 +128,7 @@ export function LoginForm({ initialRedirectTo = '', initialError = '' }: LoginFo
         <div className="rounded border border-amber-200 bg-amber-50/70 p-3 text-xs text-amber-800 space-y-1">
           <span className="font-semibold block">Supabase Connection Required</span>
           <p className="text-[11px] leading-relaxed">
-            Local credentials are not configured yet. Copy <code className="font-mono font-semibold">.env.example</code> to <code className="font-mono font-semibold">.env.local</code> and provide your Supabase project URL and anon key to test live authentication.
+            Local credentials are not configured yet. Copy <code className="font-mono font-semibold">.env.example</code> to <code className="font-mono font-semibold">.env.local</code> in the project root and provide your Supabase project URL and anon/publishable key.
           </p>
         </div>
       )}
@@ -173,7 +173,7 @@ export function LoginForm({ initialRedirectTo = '', initialError = '' }: LoginFo
         </Button>
       </div>
 
-      {/* Development Provisioning Quick-Fills */}
+      {/* Demo Email Quick-Fills (Populates email only; user must enter password) */}
       <div className="rounded border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 space-y-2">
         <div className="flex items-center justify-between">
           <span className="font-semibold text-slate-800">Development Demo Accounts</span>
@@ -182,26 +182,26 @@ export function LoginForm({ initialRedirectTo = '', initialError = '' }: LoginFo
           </Badge>
         </div>
         <p className="text-[11px] text-slate-500">
-          Once created in your Supabase Auth project (see <code className="font-mono">supabase/seed.sql</code>), click to fill:
+          Click an account to populate the operational email (password must be entered manually):
         </p>
         <div className="flex flex-wrap gap-1.5 pt-1">
           <button
             type="button"
-            onClick={() => fillDemo('admin@matos.local')}
+            onClick={() => fillDemoEmail('admin@matos.local')}
             className="px-2 py-1 rounded border border-slate-200 bg-white hover:bg-slate-100 text-[11px] text-slate-700 cursor-pointer"
           >
             Admin (Alex)
           </button>
           <button
             type="button"
-            onClick={() => fillDemo('operator@matos.local')}
+            onClick={() => fillDemoEmail('operator@matos.local')}
             className="px-2 py-1 rounded border border-slate-200 bg-white hover:bg-slate-100 text-[11px] text-slate-700 cursor-pointer"
           >
             Operator (Morgan)
           </button>
           <button
             type="button"
-            onClick={() => fillDemo('worker@matos.local')}
+            onClick={() => fillDemoEmail('worker@matos.local')}
             className="px-2 py-1 rounded border border-slate-200 bg-white hover:bg-slate-100 text-[11px] text-slate-700 cursor-pointer"
           >
             Worker (Taylor)

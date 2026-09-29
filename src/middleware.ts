@@ -9,11 +9,37 @@ export async function middleware(request: NextRequest) {
     request,
   });
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const pathname = request.nextUrl.pathname;
+  const isOperatorRoute = PROTECTED_OPERATOR_ROUTES.some((route) =>
+    pathname === route || pathname.startsWith(`${route}/`)
+  );
+  const isWorkerRoute = PROTECTED_WORKER_ROUTES.some((route) =>
+    pathname === route || pathname.startsWith(`${route}/`)
+  );
+  const isAdminRoute = pathname === '/admin' || pathname.startsWith('/admin/');
+  const isProtectedRoute = isOperatorRoute || isWorkerRoute;
+  const isAuthRoute = pathname === '/login';
 
-  // If Supabase environment variables are missing or placeholders, allow preview without crashing
-  if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes('placeholder')) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+  const isConfigured = Boolean(
+    supabaseUrl &&
+    supabaseAnonKey &&
+    !supabaseUrl.includes('placeholder')
+  );
+
+  // 1. Missing or invalid Supabase configuration:
+  // Protected routes MUST NOT be allowed to proceed.
+  if (!isConfigured || !supabaseUrl || !supabaseAnonKey) {
+    if (isProtectedRoute) {
+      const redirectUrl = new URL('/login', request.url);
+      redirectUrl.searchParams.set('redirectTo', pathname);
+      return NextResponse.redirect(redirectUrl);
+    }
+    // Public routes (/, /login, /customer/..., static assets) remain accessible
     return supabaseResponse;
   }
 
@@ -39,67 +65,90 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const pathname = request.nextUrl.pathname;
-  const isOperatorRoute = PROTECTED_OPERATOR_ROUTES.some((route) =>
-    pathname === route || pathname.startsWith(`${route}/`)
-  );
-  const isWorkerRoute = PROTECTED_WORKER_ROUTES.some((route) =>
-    pathname === route || pathname.startsWith(`${route}/`)
-  );
-  const isAuthRoute = pathname === '/login';
+  // 2. Unauthenticated requests attempting to access protected surfaces:
+  // Must fail closed and redirect to /login.
+  if (!user) {
+    if (isProtectedRoute) {
+      const redirectUrl = new URL('/login', request.url);
+      redirectUrl.searchParams.set('redirectTo', pathname);
+      return NextResponse.redirect(redirectUrl);
+    }
+    return supabaseResponse;
+  }
 
-  // 1. Unauthenticated users attempting to access protected surfaces
-  if (!user && (isOperatorRoute || isWorkerRoute)) {
+  // 3. Authenticated requests: Query profile for role and active status
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('role, is_active')
+    .eq('id', user.id)
+    .single();
+
+  // A. Profile lookup error or missing/null profile:
+  // Protected routes MUST FAIL CLOSED. Missing profile data never grants access.
+  if (profileError || !profile) {
+    if (isProtectedRoute) {
+      const redirectUrl = new URL('/login', request.url);
+      redirectUrl.searchParams.set('error', 'profile_missing');
+      return NextResponse.redirect(redirectUrl);
+    }
+    return supabaseResponse;
+  }
+
+  // B. Inactive account:
+  // Deactivated users are signed out and redirected to /login.
+  if (!profile.is_active) {
+    await supabase.auth.signOut();
     const redirectUrl = new URL('/login', request.url);
-    redirectUrl.searchParams.set('redirectTo', pathname);
+    redirectUrl.searchParams.set('error', 'account_inactive');
     return NextResponse.redirect(redirectUrl);
   }
 
-  // 2. Authenticated users
-  if (user) {
-    // Fetch profile to verify role and active status
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role, is_active')
-      .eq('id', user.id)
-      .single();
+  // C. Undefined, null, or unrecognized role:
+  // Only 'admin', 'operator', and 'worker' are valid application roles.
+  const role = profile.role;
+  const isRecognizedRole = role === 'admin' || role === 'operator' || role === 'worker';
 
-    // Inactive account handling
-    if (profile && !profile.is_active) {
-      await supabase.auth.signOut();
+  if (!isRecognizedRole) {
+    if (isProtectedRoute) {
       const redirectUrl = new URL('/login', request.url);
-      redirectUrl.searchParams.set('error', 'account_inactive');
+      redirectUrl.searchParams.set('error', 'unauthorized_role');
       return NextResponse.redirect(redirectUrl);
     }
-
-    const role = profile?.role;
-
-    // Logged in user visiting login page -> redirect to their main surface
-    if (isAuthRoute) {
-      if (role === 'worker') {
-        return NextResponse.redirect(new URL('/worker', request.url));
-      }
-      return NextResponse.redirect(new URL('/operations', request.url));
-    }
-
-    // Role-based boundary enforcement:
-    // A. Workers cannot access operator desktop surfaces
-    if (role === 'worker' && isOperatorRoute) {
-      const redirectUrl = new URL('/worker', request.url);
-      redirectUrl.searchParams.set('error', 'unauthorized_surface');
-      return NextResponse.redirect(redirectUrl);
-    }
-
-    // B. Operators cannot access admin-only surface
-    if (role === 'operator' && (pathname === '/admin' || pathname.startsWith('/admin/'))) {
-      const redirectUrl = new URL('/operations', request.url);
-      redirectUrl.searchParams.set('error', 'admin_required');
-      return NextResponse.redirect(redirectUrl);
-    }
-
-    // C. Non-workers accessing worker surface can view it, or operators can be allowed
+    return supabaseResponse;
   }
 
+  // D. Logged-in user visiting /login:
+  // Redirect to their default operational surface.
+  if (isAuthRoute) {
+    if (role === 'worker') {
+      return NextResponse.redirect(new URL('/worker', request.url));
+    }
+    return NextResponse.redirect(new URL('/operations', request.url));
+  }
+
+  // E. Role-based protected surface boundaries:
+  // - Worker attempting to access desktop operator routes: Block and redirect to /worker
+  if (role === 'worker' && isOperatorRoute) {
+    const redirectUrl = new URL('/worker', request.url);
+    redirectUrl.searchParams.set('error', 'unauthorized_surface');
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  // - Operator attempting to access admin route: Block and redirect to /operations
+  if (role === 'operator' && isAdminRoute) {
+    const redirectUrl = new URL('/operations', request.url);
+    redirectUrl.searchParams.set('error', 'admin_required');
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  // - Admin or Operator attempting to access /worker: Must not render as authorized worker
+  if (isWorkerRoute && role !== 'worker') {
+    const redirectUrl = new URL('/operations', request.url);
+    redirectUrl.searchParams.set('error', 'worker_required');
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  // F. Authorized requests proceed to the requested surface
   return supabaseResponse;
 }
 

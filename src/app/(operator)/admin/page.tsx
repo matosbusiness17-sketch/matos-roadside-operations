@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { PlaceholderPanel } from '@/components/ui/placeholder-panel';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,10 +12,16 @@ export const metadata = {
 
 export default async function AdminPage() {
   const authContext = await getCurrentUser();
-  const role = authContext?.profile?.role;
 
-  // Server-side boundary check: non-admin operators are strictly denied
-  if (authContext && role !== 'admin') {
+  // Fail-closed: missing authentication must NEVER fall through to render admin content
+  if (!authContext || !authContext.profile || !authContext.profile.is_active) {
+    redirect('/login?redirectTo=/admin');
+  }
+
+  const role = authContext.profile.role;
+
+  // Fail-closed: non-admin operators receive explicit Access Denied behavior
+  if (role !== 'admin') {
     return (
       <div className="space-y-4 max-w-2xl mx-auto py-8">
         <Card className="border-rose-200 bg-rose-50/50">
@@ -50,6 +57,7 @@ export default async function AdminPage() {
     );
   }
 
+  // Renders ONLY when active profile has role === 'admin'
   return (
     <PlaceholderPanel
       title="System & Organization Administration"

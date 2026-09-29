@@ -8,37 +8,37 @@ export default function Home() {
     {
       name: 'Operations Workspace',
       path: '/operations',
-      desc: 'Three-region operational workspace (Queue, Map, Dispatch Panel).',
+      desc: 'Three-region operational workspace shell (Queue, Map, Dispatch Panel).',
       badge: 'Core Workspace',
-      role: 'Admin & Operator',
+      access: 'Admin & Operator (Statically Verified)',
     },
     {
       name: 'Incident Management',
       path: '/incidents',
-      desc: 'Incident queues, intake records, triage status, and SLA tracking.',
+      desc: 'Incident queues, intake records, triage status, and SLA tracking shell.',
       badge: 'Operator',
-      role: 'Admin & Operator',
+      access: 'Admin & Operator (Statically Verified)',
     },
     {
       name: 'Fleet & Response Units',
       path: '/fleet',
-      desc: 'Vehicle registry, equipment capability profiles, and unit status.',
+      desc: 'Vehicle registry, equipment capability profiles, and unit status shell.',
       badge: 'Operator',
-      role: 'Admin & Operator',
+      access: 'Admin & Operator (Statically Verified)',
     },
     {
       name: 'Operational History & Audit',
       path: '/history',
-      desc: 'Immutable audit log of dispatches, transitions, and operator actions.',
+      desc: 'Immutable audit log shell of dispatches, transitions, and operator actions.',
       badge: 'Operator / Audit',
-      role: 'Admin & Operator',
+      access: 'Admin & Operator (Statically Verified)',
     },
     {
       name: 'System Administration',
       path: '/admin',
-      desc: 'Organization profile, role access, intake webhooks, and settings.',
+      desc: 'Organization settings, role access, intake webhooks, and system configuration.',
       badge: 'Admin Only',
-      role: 'Admin Only',
+      access: 'Admin Role Strictly Required (Statically Verified)',
     },
   ];
 
@@ -48,21 +48,21 @@ export default function Home() {
       path: '/worker',
       desc: 'Mobile-first field worker shell isolated from operator navigation.',
       badge: 'Field / Mobile',
-      role: 'Worker Only',
+      access: 'Worker Role Strictly Required (Statically Verified)',
     },
     {
       name: 'Customer Location Link',
       path: '/customer/location/demo-session-token-4812',
       desc: 'Temporary interaction shell for motorist breakdown GPS verification.',
       badge: 'Customer Link',
-      role: 'Public Token',
+      access: 'Public Token (Isolated Shell)',
     },
     {
       name: 'Authentication Portal',
       path: '/login',
-      desc: 'Supabase email/password sign-in with role-based routing.',
+      desc: 'Supabase email/password portal (email-only demo quick fills; manual password entry).',
       badge: 'Auth Portal',
-      role: 'All Users',
+      access: 'Public Authentication Entrypoint',
     },
   ];
 
@@ -102,7 +102,7 @@ export default function Home() {
               Application Architecture & Security Boundaries
             </h1>
             <p className="text-xs text-slate-600 mt-1 max-w-3xl">
-              Phase 2 establishes the core database entities, organization tenancy, user profiles, explicit role authorization (admin, operator, worker), Row Level Security (RLS) policies, and session management.
+              Phase 2 establishes the core database schema, organization multi-tenancy, authenticated profiles, explicit role authorization (admin, operator, worker), Row Level Security (RLS), and fail-closed route boundaries enforced at both middleware and server component layers.
             </p>
           </div>
 
@@ -111,23 +111,23 @@ export default function Home() {
               <span className="text-slate-500 font-medium">Implementation Status</span>
               <div className="font-semibold text-slate-900 flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 inline-block" />
-                Phase 2 Complete (Data, Auth & RLS)
+                Phase 2 Foundation (Statically Verified)
               </div>
             </div>
             <div className="rounded border border-slate-200 bg-white p-3 space-y-1">
-              <span className="text-slate-500 font-medium">Supabase Integration</span>
+              <span className="text-slate-500 font-medium">Supabase Configuration</span>
               <div className="font-semibold text-slate-900">
                 {env.supabase.isConfigured ? (
                   <span className="text-emerald-700">Connected & Configured</span>
                 ) : (
-                  <span className="text-slate-700">Schema & Handlers Ready (Awaiting Credentials)</span>
+                  <span className="text-slate-700">Schema Ready (Awaiting Local Credentials)</span>
                 )}
               </div>
             </div>
             <div className="rounded border border-slate-200 bg-white p-3 space-y-1">
-              <span className="text-slate-500 font-medium">Security & Tenancy</span>
+              <span className="text-slate-500 font-medium">Authorization Boundary</span>
               <div className="font-semibold text-slate-900">
-                Organization Scoping + RLS on 8 Core Tables
+                Fail-Closed Gating + Database RLS
               </div>
             </div>
           </div>
@@ -158,7 +158,7 @@ export default function Home() {
                     {route.desc}
                   </CardDescription>
                   <div className="pt-2">
-                    <span className="text-[10px] text-slate-400 font-mono">Access: {route.role}</span>
+                    <span className="text-[10px] text-slate-400 font-mono">Access: {route.access}</span>
                   </div>
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
@@ -199,7 +199,7 @@ export default function Home() {
                     {route.desc}
                   </CardDescription>
                   <div className="pt-2">
-                    <span className="text-[10px] text-slate-400 font-mono">Access: {route.role}</span>
+                    <span className="text-[10px] text-slate-400 font-mono">Access: {route.access}</span>
                   </div>
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
@@ -220,28 +220,32 @@ export default function Home() {
           <Card className="border-slate-200 bg-white">
             <CardHeader className="p-5">
               <CardTitle className="text-sm font-semibold text-slate-900">
-                Phase 2 Data & Security Architecture Summary
+                Phase 2 Architecture & Static Verification Summary
               </CardTitle>
               <CardDescription className="text-xs">
-                Reproducible migrations in <code className="font-mono">supabase/migrations/</code> and seed profiles in <code className="font-mono">supabase/seed.sql</code>.
+                Static verification suite at <code className="font-mono">tests/security-verification.mjs</code> validates that authorization boundaries strictly fail closed.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-5 pt-0 space-y-3 text-xs text-slate-600 leading-normal">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
                 <div className="rounded border border-emerald-200 bg-emerald-50/50 p-3">
                   <span className="font-semibold text-emerald-900 block mb-1">
-                    ✓ Implemented in Phase 2
+                    ✓ Statically Verified Fail-Closed Controls
                   </span>
                   <ul className="list-disc list-inside space-y-0.5 text-emerald-800 text-[11px]">
-                    <li>8 Core tables: organizations, profiles, worker_profiles, vehicles, worker_vehicle_assignments, incidents, assignments, operational_events</li>
-                    <li>Organization-scoped multi-tenancy with composite integrity foreign keys</li>
-                    <li>Explicit app_role enum: admin, operator, worker</li>
-                    <li>Row Level Security (RLS) on all 8 tables with zero anonymous leak</li>
-                    <li>Privilege escalation triggers preventing user self-promotion</li>
-                    <li>Working Supabase authentication with session persistence</li>
-                    <li>Role-aware Next.js middleware protecting operator and worker surfaces</li>
-                    <li>Server-side admin boundary check in /admin route</li>
-                    <li>Reproducible migration SQL & demo provisioning script</li>
+                    <li>Protected routes fail closed on missing/invalid Supabase configuration</li>
+                    <li>Protected routes fail closed for unauthenticated requests</li>
+                    <li>Protected routes fail closed on profile query error or null profile</li>
+                    <li>Protected routes fail closed on inactive user profiles</li>
+                    <li>Protected routes fail closed on undefined, null, or unknown roles</li>
+                    <li>Workers strictly blocked from operator desktop routes</li>
+                    <li>Operators strictly blocked from /admin (Admin role required)</li>
+                    <li>Admins and operators blocked from /worker (authorized worker required)</li>
+                    <li>Operator navigation dynamically filters out Admin link for non-admins</li>
+                    <li>Worker components render genuine session; no fabricated identities</li>
+                    <li>Login form populates demo email only; manual password entry required</li>
+                    <li>Zero hardcoded demo passwords across entire source codebase</li>
+                    <li>8 Core tables with PostgreSQL enum <code className="font-mono">app_role</code> and RLS enabled</li>
                   </ul>
                 </div>
 
@@ -256,7 +260,7 @@ export default function Home() {
                     <li>Worker PWA, offline sync & device GPS broadcast (Phase 7)</li>
                     <li>Customer GPS capture & token lookup (Phase 8)</li>
                     <li>Twilio / Vapi telephony & automated intake (Phase 9)</li>
-                    <li>Fake or simulated operational data, coordinates, or KPIs</li>
+                    <li>Simulated or mock operational data, coordinates, or KPIs</li>
                   </ul>
                 </div>
               </div>

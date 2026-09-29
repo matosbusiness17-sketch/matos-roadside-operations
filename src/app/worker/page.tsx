@@ -1,11 +1,22 @@
+import { redirect } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { getCurrentUser } from '@/lib/auth/get-user';
 
 export default async function WorkerPage() {
   const authContext = await getCurrentUser();
-  const profile = authContext?.profile;
-  const organization = authContext?.organization;
+
+  // Fail-closed: missing authentication context redirects to /login
+  if (!authContext || !authContext.profile || !authContext.profile.is_active) {
+    redirect('/login?redirectTo=/worker');
+  }
+
+  // Operators and admins are routed to the operator workspace
+  if (authContext.profile.role !== 'worker') {
+    redirect('/operations');
+  }
+
+  const { profile, organization } = authContext;
 
   return (
     <div className="space-y-4">
@@ -27,7 +38,7 @@ export default async function WorkerPage() {
             Worker Identity & Session
           </CardTitle>
           <CardDescription className="text-[11px]">
-            Phase 2 authenticated profile state
+            Authenticated operational profile
           </CardDescription>
         </CardHeader>
         <CardContent className="p-4 pt-0 space-y-3">
@@ -35,19 +46,19 @@ export default async function WorkerPage() {
             <div className="flex items-center justify-between">
               <span className="font-medium text-slate-700">Authenticated Name:</span>
               <span className="text-slate-900 font-semibold">
-                {profile?.display_name ?? 'Standby Worker (Unauthenticated)'}
+                {profile.display_name}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="font-medium text-slate-700">Role:</span>
               <Badge variant="primary" className="text-[10px] font-mono">
-                {profile?.role ?? 'worker'}
+                {profile.role}
               </Badge>
             </div>
             <div className="flex items-center justify-between">
               <span className="font-medium text-slate-700">Organization:</span>
               <span className="text-slate-800 font-medium">
-                {organization?.name ?? 'Dev Demonstration Org'}
+                {organization.name}
               </span>
             </div>
             <div className="flex items-center justify-between">

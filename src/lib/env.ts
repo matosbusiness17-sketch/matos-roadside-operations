@@ -1,19 +1,26 @@
 /**
- * Matos Systems - Environment Configuration
+ * Matos Systems — Environment Configuration
  *
  * Safely accesses and exposes application environment variables.
- * In Phase 1, avoids throwing errors on missing variables to allow
- * static builds, testing, and clean project initialization.
+ * In Phase 2, supports both NEXT_PUBLIC_SUPABASE_ANON_KEY and the modern
+ * NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY convention for the client public key.
+ * Never exposes server-role or private secret credentials.
  */
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
+const supabasePublicKey =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+  '';
 
 export const env = {
   supabase: {
-    url: process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
-    anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
+    url: supabaseUrl,
+    anonKey: supabasePublicKey,
     isConfigured: Boolean(
-      process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
-      !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder')
+      supabaseUrl &&
+      supabasePublicKey &&
+      !supabaseUrl.includes('placeholder')
     ),
   },
   app: {

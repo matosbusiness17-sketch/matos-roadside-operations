@@ -14,18 +14,38 @@ $$\text{Customer Request} \longrightarrow \text{Automated Intake} \longrightarro
 
 ---
 
-## 2. Current Implementation Phase: Phase 2 (Database, Tenancy, Auth & RLS)
+## 2. Current Implementation Phase: Phase 2 (Database, Authentication & Authorization Foundation)
 
 This repository is currently at **Implementation Phase 2: Database, Authentication & Authorization Foundation**.
 
-Delivered in this phase:
-- **Reproducible PostgreSQL Database Migrations**: 8 core tables with multi-tenant organization scoping, explicit `app_role` (`admin`, `operator`, `worker`), and composite relational integrity.
-- **Row Level Security (RLS)**: Enforced across all tables. Zero access for anonymous users; strict isolation between organizations; restricted visibility for workers (confined strictly to their assigned incidents).
-- **Privilege Escalation Prevention**: Database trigger prevents ordinary users from altering their role or transferring organizations.
-- **Working Authentication & Session Management**: Supabase Email/Password authentication with `@supabase/ssr` cookies and Next.js middleware route protection.
-- **Role-Aware Surface Routing**: Protected operator workspace for Admins and Operators; mobile worker shell for Workers; access-denied handling for unauthorized routes.
-- **Development Seed & User Provisioning**: Automated seed script for demo organization, response units, and user identity binding.
-- **Explicit Notice:** Later operational functionality (Mapbox operational maps, PostGIS nearest-worker queries, live GPS tracking, realtime WebSocket feeds, dispatch matching algorithms, and Twilio/Vapi integrations) is **NOT YET IMPLEMENTED** in this phase.
+### What Has Been Implemented & Enforced:
+- **Core PostgreSQL Schema**: 8 foundational tables (`organizations`, `profiles`, `worker_profiles`, `vehicles`, `worker_vehicle_assignments`, `incidents`, `assignments`, `operational_events`) with strict relational integrity.
+- **Organization Multi-Tenancy**: All operational entities are partitioned by `organization_id` with composite foreign keys guarding against cross-tenant unit/worker/incident leakage.
+- **Explicit Role Authorization**: Three distinct roles defined via PostgreSQL enum `app_role`: `admin`, `operator`, `worker`.
+- **Row Level Security (RLS)**: Enabled across all 8 tables with zero anonymous access; field workers strictly confined to viewing their own records and assigned incidents.
+- **Fail-Closed Boundary Defense (Statically Verified)**:
+  - **Middleware (`src/middleware.ts`)**: A protected route may continue only after positively establishing an active profile with a recognized role. Middleware explicitly rejects:
+    1. Missing or placeholder Supabase configuration => redirects to `/login`
+    2. Unauthenticated requests => redirects to `/login`
+    3. Profile query errors or missing/null profiles => redirects to `/login?error=profile_missing`
+    4. Inactive user profiles => signs out and redirects to `/login?error=account_inactive`
+    5. Undefined, null, or unknown roles => redirects to `/login?error=unauthorized_role`
+    6. Unauthorized role for the surface:
+       - Worker attempting operator desktop routes => redirected to `/worker`
+       - Operator attempting `/admin` => redirected to `/operations`
+       - Admin or operator attempting `/worker` => redirected to `/operations` (must not be treated as authorized field workers)
+    Public routes (`/`, `/login`, `/customer/location/...`, static assets) remain accessible.
+  - **Server-Side Defense in Depth**: Server components in `(operator)/layout.tsx`, `(operator)/admin/page.tsx`, and `worker/layout.tsx` independently verify session credentials and profile activation via `getCurrentUser()`.
+  - **Admin Surface (`/admin`)**: Admin role strictly required; authenticated operators receive an explicit Access Denied boundary; unauthenticated requests fail closed.
+  - **Operator Navigation**: Dynamically filters out the Admin link unless the user has verified `admin` role (no default admin role).
+  - **Worker Surface (`/worker`)**: Requires genuine authenticated worker credentials; renders authentic profile and organization data without fabricated fallback identities.
+- **Authentication Hygiene**: Operational email/password authentication via Supabase Auth. Quick-fill buttons populate demo emails only; passwords must always be entered manually.
+- **Database Triggers**:
+  - `trg_protect_profile_role`: Blocks privilege escalation and self-promotion on `profiles`.
+  - `trg_immutable_operational_events`: Enforces append-only immutability for the operational audit log.
+
+### What is Deferred to Subsequent Phases:
+Operational incident intake workflows, incident queues, Mapbox mapping, capability dispatch engines, PostGIS spatial queries, worker PWA GPS broadcasting, motorist SMS verification, and telephony integrations are **strictly deferred** to Phases 3–10.
 
 ---
 
@@ -34,31 +54,44 @@ Delivered in this phase:
 - **Framework**: [Next.js](https://nextjs.org/) (App Router, React 19)
 - **Language**: [TypeScript](https://www.typescriptlang.org/) (Strict typing)
 - **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
-- **Database & Auth**: [Supabase](https://supabase.com/) (`@supabase/supabase-js`, `@supabase/ssr`, PostgreSQL 15+, RLS)
+- **Backend & Database**: [Supabase](https://supabase.com/) (PostgreSQL 15+, Supabase Auth, Row Level Security)
+- **Session Management**: `@supabase/ssr` (Cookie-based session management and middleware refresh)
 - **Deployment Platform**: [Vercel](https://vercel.com/)
 
 ---
 
-## 4. Database Schema & Entities
+## 4. High-Level Route Structure & Access Boundaries
 
-Migrations are located in `supabase/migrations/`:
-- `public.organizations`: Tenancy root representing the roadside assistance company.
-- `public.profiles`: Application profiles referencing `auth.users` with `role` (`admin | operator | worker`).
-- `public.worker_profiles`: Field worker extension with `availability_status`.
-- `public.vehicles`: Response units/vehicles with callsign and registration number.
-- `public.worker_vehicle_assignments`: Composite-guarded junction tracking worker-to-vehicle shifts.
-- `public.incidents`: Structural incident entity with status lifecycle, contact, and priority.
-- `public.assignments`: Composite-guarded dispatch binding connecting incident, worker, and vehicle.
-- `public.operational_events`: Immutable append-only audit trail with modification-blocking trigger.
+The application separates operational concerns into distinct surfaces with server-enforced, fail-closed access boundaries:
+
+### System & General Surfaces
+- `/` — System Index & Phase 2 Architecture Directory (Public)
+- `/login` — Operational Authentication Portal (Public; email/password authentication; demo buttons populate email only)
+
+### Operator Desktop Surfaces (`(operator)` Route Group)
+Desktop-first layout shell with persistent header and dynamic navigation:
+- `/operations` — Operational Workspace Shell (Authenticated `admin` & `operator`; workers redirected to `/worker`)
+- `/incidents` — Incident Management Shell (Authenticated `admin` & `operator`)
+- `/fleet` — Fleet & Response Units Shell (Authenticated `admin` & `operator`)
+- `/history` — Operational History & Audit Shell (Authenticated `admin` & `operator`)
+- `/admin` — System & Organization Administration Shell (**Admin role strictly required**; authenticated operators receive Access Denied; unauthenticated redirected to `/login`)
+
+### Mobile Worker Surface
+Mobile-first layout container isolated from desktop operator navigation:
+- `/worker` — Mobile Response Worker Shell (Authenticated `worker` role strictly required; non-workers redirected to `/operations`; unauthenticated redirected to `/login`)
+
+### Customer Temporary Interaction Surface
+Focused, isolated interaction container accessed via temporary dispatch links:
+- `/customer/location/[token]` — Motorist Location Confirmation Shell (Token-isolated; awaiting Phase 8 GPS verification)
 
 ---
 
-## 5. Local Setup & Execution
+## 5. Local Setup & Installation
 
 ### Prerequisites
 - Node.js (v20+ recommended; verified on Node v24)
 - npm (v10+)
-- Active Supabase Project (PostgreSQL + Auth enabled)
+- A Supabase project (free tier or local)
 
 ### 1. Clone & Install Dependencies
 ```bash
@@ -68,87 +101,125 @@ npm install
 ```
 
 ### 2. Environment Configuration
-Copy `.env.example` to `.env.local`:
+Copy `.env.example` to `.env.local` located at the **Next.js PROJECT ROOT**:
 ```bash
 cp .env.example .env.local
 ```
 
-Set your Supabase project credentials in `.env.local`:
+> **IMPORTANT:** Ensure `.env.local` is placed at `matos-roadside-operations/.env.local`, **NOT** inside `/supabase`.
+
+Configure your Supabase credentials in `.env.local`:
 ```ini
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+
+# Public client key: Either NEXT_PUBLIC_SUPABASE_ANON_KEY or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 ```
 
-### 3. Database Migration Execution
-Apply the migration to your Supabase project using the Supabase CLI or SQL Editor:
-```bash
-# If using Supabase CLI linked to your project:
-npx supabase db push
-
-# Alternatively: Copy and execute the contents of:
-# supabase/migrations/20260928190000_phase2_core_schema_and_rls.sql
-# inside the Supabase Dashboard SQL Editor.
-```
-
-### 4. Development Accounts & Seed Data
-Execute `supabase/seed.sql` in the Supabase SQL Editor:
-1. Provisions the demo organization (`Matos Roadside Assistance (Demo Org)`) and response fleet.
-2. In Supabase Dashboard $\rightarrow$ **Authentication** $\rightarrow$ **Users**, create 3 test users:
+### 3. Database Schema Migration & Seeding
+1. Open the **SQL Editor** in your Supabase project dashboard.
+2. Execute the migration file:
+   `supabase/migrations/20260928190000_phase2_core_schema_and_rls.sql`
+3. In the Supabase Dashboard under **Authentication → Users**, create three demo accounts:
    - `admin@matos.local`
    - `operator@matos.local`
    - `worker@matos.local`
-3. In Supabase **SQL Editor**, execute the provisioning helper:
-   ```sql
-   SELECT public.provision_demo_user('admin@matos.local', 'admin', 'Alex Admin');
-   SELECT public.provision_demo_user('operator@matos.local', 'operator', 'Morgan Operator');
-   SELECT public.provision_demo_user('worker@matos.local', 'worker', 'Taylor Worker');
-   ```
+   *(Set secure development passwords for each user; note passwords for manual entry at login).*
+4. In the Supabase **SQL Editor**, execute `supabase/seed.sql` to seed the demo organization, vehicles, and run `provision_demo_user` bindings.
 
-### 5. Run Local Development Server
+### 4. Run Static Security Verification
+Validate that all database schema, RLS policies, middleware fail-closed boundaries, and authentication hygiene rules are satisfied:
+```bash
+node tests/security-verification.mjs
+```
+
+### 5. Run the Development Server
 ```bash
 npm run dev
 ```
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-### 6. Build & Validate
+### 6. Build for Production
+To validate TypeScript types, linting, and compile the production bundle:
 ```bash
-npm run lint          # Run ESLint validation
-npm run build         # Validate TypeScript and compile production bundle
-node tests/security-verification.mjs # Run static RLS & architecture verification
+npm run build
 ```
 
 ---
 
-## 6. High-Level Route Structure
+## 6. Project Directory Layout
 
-### System & General Surfaces
-- `/` — System Index, Architecture & Security Summary
-- `/login` — Account Authentication (Interactive sign-in with quick-fills for demo identities)
-
-### Operator Desktop Surfaces (`(operator)` Route Group)
-Desktop-first shell requiring `admin` or `operator` role:
-- `/operations` — Operational Workspace Shell
-- `/incidents` — Incident Management Shell
-- `/fleet` — Fleet & Response Units Shell
-- `/history` — Operational History & Audit Shell
-- `/admin` — Organization Administration Shell (**Admin role strictly required**)
-
-### Mobile Worker Surface
-Mobile-first layout shell requiring `worker` role:
-- `/worker` — Mobile Response Worker Portal (Isolated from operator desktop)
-
-### Customer Temporary Interaction Surface
-- `/customer/location/[token]` — Motorist Location Confirmation Shell (Temporary interaction link, no operator navigation)
+```
+matos-roadside-operations/
+├── docs/                                  # Architectural documentation
+│   └── architecture.md                    # Phase 2 Tenancy, Auth & RLS architecture
+├── src/
+│   ├── app/                               # Next.js App Router routes & layouts
+│   │   ├── (operator)/                    # Operator desktop shell route group
+│   │   │   ├── layout.tsx                 # Server fail-closed operator layout
+│   │   │   ├── operations/                # Operations workspace shell
+│   │   │   ├── incidents/                 # Incident queues shell
+│   │   │   ├── fleet/                     # Response units shell
+│   │   │   ├── history/                   # Event audit log shell
+│   │   │   └── admin/                     # Admin shell (Admin role strictly required)
+│   │   ├── customer/                      # Customer interaction surface
+│   │   │   └── location/
+│   │   │       └── [token]/               # Motorist location verification shell
+│   │   ├── worker/                        # Mobile response worker surface
+│   │   │   ├── layout.tsx                 # Mobile-first fail-closed worker layout
+│   │   │   └── page.tsx                   # Authentic worker status & session
+│   │   ├── login/                         # Authentication portal
+│   │   │   ├── page.tsx                   # Sign-in page shell
+│   │   │   └── login-form.tsx             # Email-only demo fill; manual password entry
+│   │   ├── auth/                          # Auth route handlers
+│   │   │   ├── callback/route.ts          # OAuth/PKCE exchange handler
+│   │   │   └── signout/route.ts           # Server-side sign-out handler
+│   │   ├── error.tsx                      # Application error boundary
+│   │   ├── globals.css                    # Tailwind CSS imports & theme
+│   │   ├── layout.tsx                     # Root HTML layout
+│   │   ├── loading.tsx                    # Framework loading state
+│   │   ├── not-found.tsx                  # 404 page handler
+│   │   └── page.tsx                       # Phase 2 Architecture index & route directory
+│   ├── components/                        # Reusable UI & surface components
+│   │   ├── customer/                      # Customer header components
+│   │   ├── operator/                      # Operator header & fail-closed navigation tabs
+│   │   ├── ui/                            # Base primitives (Button, Badge, Card, Panels)
+│   │   └── worker/                        # Genuine worker header components
+│   ├── lib/                               # Foundation utilities & integration
+│   │   ├── auth/                          # Server-side auth context & actions
+│   │   │   ├── actions.ts                 # Sign-out server action
+│   │   │   └── get-user.ts                # Cached session & profile resolver
+│   │   ├── supabase/                      # Supabase SSR client handlers
+│   │   │   ├── client.ts                  # Browser client (@supabase/ssr)
+│   │   │   └── server.ts                  # Server client (@supabase/ssr)
+│   │   ├── env.ts                         # Anon & publishable key support
+│   │   └── utils.ts                       # Classname merge helpers
+│   ├── middleware.ts                      # Fail-closed route protection & role boundary middleware
+│   └── types/                             # Shared TypeScript interfaces & DB types
+│       └── index.ts
+├── supabase/                              # Database migrations & seeds
+│   ├── migrations/
+│   │   └── 20260928190000_phase2_core_schema_and_rls.sql
+│   └── seed.sql                           # Demo organization, vehicles & user provisioning
+├── tests/                                 # Verification suites
+│   └── security-verification.mjs          # Comprehensive static security test suite
+├── .env.example                           # Environment variable specification
+├── .gitignore                             # Excludes local secrets & build artifacts
+├── package.json
+└── tsconfig.json
+```
 
 ---
 
-## 7. Upcoming Phases (Approved Roadmap)
+## 7. Phased Roadmap
 
-- **Phase 3**: Core PostgreSQL Schema & PostGIS Spatial Extensions
-- **Phase 4**: Incident Management & Operational State Machine
-- **Phase 5**: Mapbox Operational Mapping & Live Fleet Telemetry
-- **Phase 6**: Capability-Aware Matching & Dispatch Engine
-- **Phase 7**: Response Worker PWA & GPS Tracking
-- **Phase 8**: Motorist Temporary SMS Location Confirmation
-- **Phase 9**: Twilio / Vapi Automated Voice Intake & SMS Gateway
-- **Phase 10**: Hardening, Audit Logs & Production Deployment
+- **Phase 1**: Application Foundation & Route Shells (**Completed**)
+- **Phase 2**: Database, Tenancy, Authentication & Authorization Foundation (**Completed - Statically Verified**)
+- **Phase 3**: Core PostgreSQL Schema & PostGIS Spatial Extensions (Deferred)
+- **Phase 4**: Incident Management & Operational State Machine (Deferred)
+- **Phase 5**: Mapbox Operational Mapping & Live Fleet Telemetry (Deferred)
+- **Phase 6**: Capability-Aware Matching & Dispatch Engine (Deferred)
+- **Phase 7**: Response Worker PWA & GPS Tracking (Deferred)
+- **Phase 8**: Motorist Temporary SMS Location Confirmation (Deferred)
+- **Phase 9**: Twilio / Vapi Automated Voice Intake & SMS Gateway (Deferred)
+- **Phase 10**: Hardening, Audit Logs & Production Deployment (Deferred)
