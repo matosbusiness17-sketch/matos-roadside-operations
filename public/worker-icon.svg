@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#2563eb" />
+    </linearGradient>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background Base with rounded corners -->
+  <rect width="512" height="512" rx="104" fill="url(#bgGrad)" />
+  <rect x="16" y="16" width="480" height="480" rx="92" fill="none" stroke="#334155" stroke-width="4" stroke-opacity="0.6" />
+
+  <!-- Shield Contour -->
+  <path d="M256 76 L396 136 C396 268 336 376 256 424 C176 376 116 268 116 136 Z" 
+        fill="url(#shieldGrad)" stroke="url(#accentGrad)" stroke-width="12" stroke-linejoin="round" />
+
+  <!-- Road / Response Way Lines (Perspective Highway) -->
+  <path d="M208 360 L236 172 L276 172 L304 360 Z" fill="#090d16" />
+  
+  <!-- Dashed Center Lane Marking -->
+  <line x1="256" y1="188" x2="256" y2="228" stroke="#38bdf8" stroke-width="8" stroke-linecap="round" />
+  <line x1="256" y1="256" x2="256" y2="304" stroke="#38bdf8" stroke-width="10" stroke-linecap="round" />
+  <line x1="256" y1="332" x2="256" y2="356" stroke="#38bdf8" stroke-width="12" stroke-linecap="round" />
+
+  <!-- Left Road Stripe -->
+  <line x1="234" y1="184" x2="208" y2="356" stroke="#64748b" stroke-width="5" stroke-linecap="round" />
+  <!-- Right Road Stripe -->
+  <line x1="278" y1="184" x2="304" y2="356" stroke="#64748b" stroke-width="5" stroke-linecap="round" />
+
+  <!-- Beacon / Response Star Emblem at Apex -->
+  <circle cx="256" cy="148" r="20" fill="url(#accentGrad)" />
+  <circle cx="256" cy="148" r="10" fill="#ffffff" />
+
+  <!-- Subtle Wrench Accent Bar -->
+  <path d="M192 144 L160 176 C152 184 152 196 160 204 L180 224 L196 208 L184 196 L204 176 Z" fill="#94a3b8" />
+  <path d="M320 144 L352 176 C360 184 360 196 352 204 L332 224 L316 208 L328 196 L308 176 Z" fill="#94a3b8" />
+</svg>

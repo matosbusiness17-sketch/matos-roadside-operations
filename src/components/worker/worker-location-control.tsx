@@ -18,6 +18,14 @@ export function WorkerLocationControl() {
     setErrorMessage(null);
     setSuccessMessage(null);
 
+    // Fail-closed offline protection: do NOT acquire or publish GPS while offline
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setErrorMessage(
+        'You are offline. Location was not sent or queued. Reconnect and share again.'
+      );
+      return;
+    }
+
     // 1. Verify browser geolocation exists
     if (typeof window === 'undefined' || !navigator.geolocation) {
       setErrorMessage('Location sharing is not supported by this browser.');
@@ -37,6 +45,15 @@ export function WorkerLocationControl() {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         setIsLocating(false);
+
+        // Guard against becoming offline during coordinate acquisition
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          setErrorMessage(
+            'You are offline. Location was not sent or queued. Reconnect and share again.'
+          );
+          return;
+        }
+
         setIsPublishing(true);
 
         try {

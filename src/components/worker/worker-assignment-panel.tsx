@@ -131,6 +131,15 @@ export function WorkerAssignmentPanel({ assignment }: WorkerAssignmentPanelProps
 
     setErrorMessage(null);
     setSuccessMessage(null);
+
+    // Fail-closed offline protection: do NOT queue lifecycle transitions offline
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setErrorMessage(
+        'You are offline. Lifecycle changes are not queued. Reconnect and try again.'
+      );
+      return;
+    }
+
     setIsActionPending(true);
 
     try {
@@ -174,6 +183,12 @@ export function WorkerAssignmentPanel({ assignment }: WorkerAssignmentPanelProps
   const handleManualRefresh = () => {
     if (isBusy) return;
     setErrorMessage(null);
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setErrorMessage('You are offline. Reconnect to refresh assignment.');
+      return;
+    }
+
     startRefreshTransition(() => {
       router.refresh();
     });
