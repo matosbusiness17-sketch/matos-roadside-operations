@@ -9,6 +9,7 @@ import { IncidentQueue } from '@/components/operations/incident-queue';
 import { OperationsMap } from '@/components/operations/operations-map';
 import { OperationsContextPanel } from '@/components/operations/operations-context-panel';
 import { refreshOperationsSnapshot } from '@/lib/operations/actions';
+import { OperationsRealtimeBridge } from '@/components/operations/operations-realtime-bridge';
 
 interface OperationsWorkspaceProps {
   initialSnapshot: OperationsSnapshot;
@@ -191,6 +192,9 @@ export function OperationsWorkspace({
 
   return (
     <div className="flex flex-col space-y-3 h-[calc(100vh-10.5rem)] min-h-[620px]">
+      {/* Realtime Invalidation Bridge for Automatic Operations Sync */}
+      <OperationsRealtimeBridge onInvalidate={handleRefresh} />
+
       {/* Workspace Header / Controls Row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-1 border-b border-slate-200">
         <div className="flex items-center space-x-3">
