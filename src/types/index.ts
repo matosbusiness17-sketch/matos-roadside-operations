@@ -478,3 +478,79 @@ export type DispatchMutationResult =
         message?: string;
       };
     };
+
+// ------------------------------------------------------------------------------
+// Phase 7A Response Worker Lifecycle Types
+// ------------------------------------------------------------------------------
+
+export type WorkerLifecycleAction =
+  | 'ACCEPT_ASSIGNMENT'
+  | 'START_JOURNEY'
+  | 'ARRIVE_ON_SCENE'
+  | 'START_WORK'
+  | 'COMPLETE_JOB';
+
+export const ALLOWED_WORKER_ACTIONS: WorkerLifecycleAction[] = [
+  'ACCEPT_ASSIGNMENT',
+  'START_JOURNEY',
+  'ARRIVE_ON_SCENE',
+  'START_WORK',
+  'COMPLETE_JOB',
+];
+
+export type WorkerTransitionErrorCode =
+  | 'UNAUTHORIZED'
+  | 'FORBIDDEN'
+  | 'ASSIGNMENT_NOT_FOUND'
+  | 'INVALID_TRANSITION'
+  | 'ASSIGNMENT_CONFLICT'
+  | 'INVALID_RESPONSE'
+  | 'WORKER_ACTION_UNAVAILABLE';
+
+export interface WorkerTransitionSuccessPayload {
+  success: true;
+  action: WorkerLifecycleAction;
+  assignment_id: string;
+  assignment_status: AssignmentStatus;
+  incident_id: string;
+  incident_status: IncidentStatus;
+  worker_id: string;
+  worker_availability: WorkerAvailabilityStatus;
+  completed_at: string | null;
+  transitioned_at: string;
+}
+
+export type WorkerTransitionResult =
+  | {
+      success: true;
+      data: WorkerTransitionSuccessPayload;
+    }
+  | {
+      success: false;
+      error: {
+        code: WorkerTransitionErrorCode;
+        message?: string;
+      };
+    };
+
+export interface WorkerActiveAssignment {
+  assignment_id: string;
+  status: 'assigned' | 'accepted' | 'en_route' | 'on_scene';
+  assigned_at: string;
+  vehicle_id: string | null;
+  callsign: string | null;
+  registration_number: string | null;
+  incident_id: string;
+  reference_number: string;
+  incident_status: IncidentStatus;
+  service_type: ServiceType;
+  priority: IncidentPriority;
+  customer_name: string | null;
+  customer_phone: string | null;
+  location_address: string | null;
+  required_capability: {
+    id: string;
+    code: string;
+    name: string;
+  } | null;
+}
