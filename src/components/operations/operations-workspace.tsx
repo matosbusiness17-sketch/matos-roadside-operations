@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
   OperationsSnapshot,
   OperationsSelection,
@@ -33,6 +33,7 @@ export function OperationsWorkspace({
   // Snapshot state
   const [snapshot, setSnapshot] = useState<OperationsSnapshot>(initialSnapshot);
   const [selection, setSelection] = useState<OperationsSelection>(null);
+  const [highlightedDispatchVehicleId, setHighlightedDispatchVehicleId] = useState<string | null>(null);
 
   // Queue filter and search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -40,9 +41,15 @@ export function OperationsWorkspace({
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [serviceFilter, setServiceFilter] = useState('all');
 
-  // Refresh and action states
+  // Refresh and action states with serialized queueing
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshWarning, setRefreshWarning] = useState<string | null>(null);
+
+  // Serialized refresh queue and request sequence tracking
+  const refreshSeqRef = useRef<number>(0);
+  const inFlightPromiseRef = useRef<Promise<void> | null>(null);
+  const pendingQueuedRefreshRef = useRef<boolean>(false);
+
   const [fitTrigger, setFitTrigger] = useState(0);
 
   // Filter incidents client-side, preserving authoritative snapshot ordering
@@ -81,7 +88,10 @@ export function OperationsWorkspace({
     if (selection?.type === 'incident') {
       const stillVisible = filteredIncidents.some((i) => i.id === selection.id);
       if (!stillVisible) {
-        queueMicrotask(() => setSelection(null));
+        queueMicrotask(() => {
+          setSelection(null);
+          setHighlightedDispatchVehicleId(null);
+        });
       }
     }
   }, [filteredIncidents, selection]);
@@ -97,48 +107,83 @@ export function OperationsWorkspace({
 
   const handleClearSelection = useCallback(() => {
     setSelection(null);
+    setHighlightedDispatchVehicleId(null);
   }, []);
 
-  // Manual snapshot refresh handler
-  const handleRefresh = async () => {
-    if (isRefreshing) return;
-    setIsRefreshing(true);
+  const handleHighlightVehicle = useCallback((id: string | null) => {
+    setHighlightedDispatchVehicleId(id);
+  }, []);
 
-    try {
-      const result = await refreshOperationsSnapshot();
-
-      if (result.success) {
-        setSnapshot(result.snapshot);
-        setRefreshWarning(null);
-
-        // Reconcile selection against new snapshot
-        setSelection((prev) => {
-          if (!prev) return null;
-          if (prev.type === 'incident') {
-            const exists = result.snapshot.incidents.some((i) => i.id === prev.id);
-            return exists ? prev : null;
-          }
-          if (prev.type === 'vehicle') {
-            const exists = result.snapshot.vehicles.some((v) => v.id === prev.id);
-            return exists ? prev : null;
-          }
-          return null;
-        });
-      } else {
-        // Non-destructive: retain existing snapshot, timestamp, and selection
-        setRefreshWarning(
-          'Refresh failed. Showing the last successfully loaded operational snapshot.'
-        );
-      }
-    } catch (err) {
-      console.error('Snapshot refresh request failed:', err);
-      setRefreshWarning(
-        'Refresh failed. Showing the last successfully loaded operational snapshot.'
-      );
-    } finally {
-      setIsRefreshing(false);
+  // Guaranteed serialized snapshot refresh handler
+  // If a refresh is already in-flight (e.g. manual refresh), a subsequent refresh
+  // (e.g. post-mutation refresh from DispatchPanel) is queued and guaranteed to execute
+  // rather than being silently dropped.
+  const handleRefresh = useCallback(async (): Promise<void> => {
+    if (inFlightPromiseRef.current) {
+      pendingQueuedRefreshRef.current = true;
+      await inFlightPromiseRef.current;
+      return;
     }
-  };
+
+    while (true) {
+      const currentSeq = ++refreshSeqRef.current;
+      setIsRefreshing(true);
+
+      const promise = (async () => {
+        try {
+          const result = await refreshOperationsSnapshot();
+
+          // Stale sequence check: only apply if this is still the newest refresh
+          if (currentSeq < refreshSeqRef.current) {
+            return;
+          }
+
+          if (result.success) {
+            setSnapshot(result.snapshot);
+            setRefreshWarning(null);
+
+            // Reconcile selection against new snapshot
+            setSelection((prev) => {
+              if (!prev) return null;
+              if (prev.type === 'incident') {
+                const exists = result.snapshot.incidents.some((i) => i.id === prev.id);
+                return exists ? prev : null;
+              }
+              if (prev.type === 'vehicle') {
+                const exists = result.snapshot.vehicles.some((v) => v.id === prev.id);
+                return exists ? prev : null;
+              }
+              return null;
+            });
+          } else {
+            // Non-destructive: retain existing snapshot, timestamp, and selection
+            setRefreshWarning(
+              'Refresh failed. Showing the last successfully loaded operational snapshot.'
+            );
+          }
+        } catch (err) {
+          console.error('Snapshot refresh request failed:', err);
+          setRefreshWarning(
+            'Refresh failed. Showing the last successfully loaded operational snapshot.'
+          );
+        } finally {
+          if (currentSeq === refreshSeqRef.current) {
+            setIsRefreshing(false);
+            inFlightPromiseRef.current = null;
+          }
+        }
+      })();
+
+      inFlightPromiseRef.current = promise;
+      await promise;
+
+      if (pendingQueuedRefreshRef.current) {
+        pendingQueuedRefreshRef.current = false;
+        continue;
+      }
+      break;
+    }
+  }, []);
 
   const handleFitOperationalArea = useCallback(() => {
     setFitTrigger((t) => t + 1);
@@ -253,6 +298,7 @@ export function OperationsWorkspace({
             mapboxToken={mapboxToken}
             isMapboxConfigured={isMapboxConfigured}
             fitTrigger={fitTrigger}
+            highlightedDispatchVehicleId={highlightedDispatchVehicleId}
           />
         </div>
 
@@ -265,6 +311,8 @@ export function OperationsWorkspace({
             generatedAt={snapshot.generated_at}
             onClearSelection={handleClearSelection}
             onFitOperationalArea={handleFitOperationalArea}
+            onRefreshWorkspace={handleRefresh}
+            onHighlightVehicle={handleHighlightVehicle}
           />
         </div>
       </div>

@@ -8,18 +8,18 @@ Developed by **Matos Systems** — *Customer Journeys + Business Workflows*.
 
 ## 1. Project Purpose
 
-The system is designed to connect customer intake, incident structuring, capability-aware dispatch, mobile response units, and genuine GPS tracking into a unified operational workflow:
+The system connects customer intake, incident structuring, capability-aware dispatch, mobile response units, and genuine GPS tracking into a unified operational workflow:
 
 $$\text{Customer Request} \longrightarrow \text{Automated Intake} \longrightarrow \text{Structured Incident} \longrightarrow \text{Capability Dispatch} \longrightarrow \text{Response Worker} \longrightarrow \text{Completion}$$
 
 ---
 
-## 2. Current Implementation Phase: Phase 5 (Operational Mapping & Fleet Telemetry Foundation)
+## 2. Current Implementation Phase: Phase 6 (Capability-Aware Matching & Dispatch Engine)
 
-This repository is currently at **Implementation Phase 5: Operational Mapping & Fleet Telemetry Foundation**.
+This repository is currently at **Implementation Phase 6: Capability-Aware Matching & Dispatch Engine**.
 
 ### What Has Been Implemented & Enforced:
-- **Phase 2 Foundation (Locked & Preserved)**:
+- **Phase 2 Foundation (Locked & Preserved — Statically Verified: 89 passed / 0 failed)**:
   - Multi-tenant organization scoping (`organizations`)
   - Explicit role authorization (`admin`, `operator`, `worker`) via PostgreSQL enum `app_role`
   - Fail-closed route gating in middleware (`src/middleware.ts`) and server components
@@ -36,31 +36,48 @@ This repository is currently at **Implementation Phase 5: Operational Mapping & 
   - **Privileged RPCs**: `create_incident` and `transition_incident_status` with `FOR UPDATE` concurrency row locking.
 - **Phase 5 Operational Mapping & Fleet Telemetry Foundation (Statically Verified: 257 passed / 0 failed)**:
   - **Authoritative Snapshot RPC (`public.get_operations_map_snapshot`)**:
-    - Zero-parameter contract: tenant organization and user role derived strictly from authenticated session context (`auth.uid()`, `get_current_user_organization_id()`, `get_current_user_role()`).
-    - Role-restricted execution: permits `admin` and `operator` roles only; workers strictly rejected.
-    - Read-only execution guarantee: executes strictly SELECT queries with zero data mutations.
-    - Active incident scoping: returns exactly the 7 active operational statuses (`new`, `triaged`, `ready_for_dispatch`, `dispatched`, `en_route`, `on_scene`, `in_progress`) and excludes terminal statuses (`completed`, `cancelled`, `unable_to_complete`).
-    - **Aggregate-Level Deterministic Ordering**:
-      - Incidents ordered inside `jsonb_agg(...)` by priority (`critical > high > standard > low`), oldest `created_at ASC`, and `id ASC`.
-      - Vehicles ordered inside `jsonb_agg(...)` by `callsign ASC, id ASC`.
-    - Active fleet scoping: active vehicles (`is_active = true`) with last-known location timestamps and normalized service capabilities.
-    - PostGIS coordinate derivation: numeric longitude (`ST_X`) and latitude (`ST_Y`) derived from geography points with missing-location tolerance (unmapped incidents and vehicles safely included with null coordinates).
-    - Strict privilege model: execution revoked from `PUBLIC` and `anon`; granted to `authenticated`.
-  - **Fail-Closed Application Data Layer (`src/lib/operations/data.ts`)**:
-    - Validates required incident contract fields (`id`, `reference_number`, `status`, `priority`, `service_type`, `customer_name`, `customer_phone`, `location_address`, `created_at`, `updated_at`).
-    - Zero timestamp fabrication: never falls back to `new Date().toISOString()`.
-    - Zero phone fabrication: never substitutes empty string for required customer phone.
-    - Fail closed: returns `INVALID_SNAPSHOT` on malformed payload structure without leaking raw database errors.
-  - **Unified Three-Region Operational Workspace (`/operations`)**:
-    - Left: Incident Queue with client-side status, priority, and service filters plus operational text search.
-    - Center: Interactive Mapbox GL JS map with custom incident priority markers, vehicle callsign markers, and operational bounding.
-    - Right: Operational Context Panel providing full record links and inspection.
-    - **Real Filter-Driven Selection Clearing**: If a selected incident is hidden by a queue filter or search, actual selection state is cleared (`setSelection(null)`) rather than merely masked.
-    - **Truthful Vehicle Position Semantics**: Vehicle positions display the latest stored location snapshot and are not a live GPS feed.
-    - **Non-Destructive Manual Refresh**: Atomic snapshot update, selection reconciliation, error warning banner retention on failure, and zero automatic polling.
+    - Zero-parameter contract: session-derived tenant and role (admin/operator only; workers rejected).
+    - Read-only execution guarantee over 7 active incident statuses.
+    - Deterministic ordering inside `jsonb_agg`: incidents by priority, oldest `created_at ASC`, and `id ASC`; vehicles by `callsign ASC, id ASC`.
+    - Unified three-region operational mapping workspace (`/operations`) with Mapbox GL JS map, queue, and detail panel.
+    - Real filter-driven selection clearing and truthful last-known location fleet visualization.
+- **Phase 6 Capability-Aware Matching & Dispatch Engine (Statically Verified: 145 passed / 0 failed)**:
+  - **Concurrency Protection via 5 Partial Unique Indexes**:
+    - `idx_uq_wva_active_worker` on `worker_vehicle_assignments(organization_id, worker_id) WHERE status = 'active'`
+    - `idx_uq_wva_active_vehicle` on `worker_vehicle_assignments(organization_id, vehicle_id) WHERE status = 'active'`
+    - `idx_uq_assignments_active_incident` on `assignments(organization_id, incident_id) WHERE status IN ('assigned', 'accepted', 'en_route', 'on_scene')`
+    - `idx_uq_assignments_active_worker` on `assignments(organization_id, worker_id) WHERE status IN ('assigned', 'accepted', 'en_route', 'on_scene')`
+    - `idx_uq_assignments_active_vehicle` on `assignments(organization_id, vehicle_id) WHERE vehicle_id IS NOT NULL AND status IN ('assigned', 'accepted', 'en_route', 'on_scene')`
+  - **Assignment Mutation Lockdown**: Generic direct `INSERT` and `UPDATE` policies dropped; direct table mutation (`INSERT`, `UPDATE`, `DELETE`) revoked from `authenticated` and `anon`; `SELECT` visibility preserved.
+  - **Authoritative Candidate Evaluation RPC (`public.get_dispatch_candidates(UUID)`)**:
+    - Session-derived tenant and role check (admin/operator only; workers rejected).
+    - Strict eligibility: active shift binding (`status = 'active'`), available worker (`availability_status = 'available'`), active profile (`is_active = true`), active vehicle (`is_active = true`), and no active assignment conflicts.
+    - Accurate capability matching: if incident specifies `required_capability_id`, vehicle must have a matching row in `vehicle_capabilities` and the referenced `service_capabilities` record must be active (`service_capabilities.is_active = true`).
+    - Deterministic PostGIS proximity ordering: `ST_Distance(v_inc.location, v.last_known_location)` with ordering `distance_meters ASC, callsign ASC, worker_id ASC` inside final `jsonb_agg`.
+    - Missing-location tolerance: candidates with unmapped vehicles or unmapped incidents safely categorized as unranked with explicit `ranking_reason` and zero coordinate fabrication.
+  - **Atomic Initial Dispatch RPC (`public.dispatch_incident(UUID, UUID, UUID)`)**:
+    - Row-level locking (`FOR UPDATE`) on incident, worker, vehicle, and shift binding.
+    - Transaction-time re-validation of eligibility and active conflict checks.
+    - Reuses Phase 4 `transition_incident_status` (`ready_for_dispatch` -> `dispatched`).
+    - Creates assignment record in status `assigned` and records `ASSIGNMENT_CREATED` operational audit event.
+  - **Atomic Reassignment RPC (`public.reassign_incident(UUID, UUID, UUID, UUID)`)**:
+    - Row-level locking (`FOR UPDATE`) on incident and current assignment.
+    - Validates incident is in `dispatched` status and current assignment is still in status `assigned`.
+    - Cancels prior assignment (`status = 'cancelled'`) without fabricating `completed_at` timestamps.
+    - Creates replacement assignment (`status = 'assigned'`) and records `INCIDENT_REASSIGNED` operational event.
+    - Reassignment exclusion ignores only the exact current assignment being replaced during conflict validation.
+  - **Fail-Closed Application Data Layer (`src/lib/dispatch/data.ts`)**:
+    - Required property presence checks for contract keys (e.g. `required_capability`, `current_assignment`).
+    - Strict nullable field validation: malformed non-null values for `registration_number` or `vehicle_location_updated_at` reject the payload rather than silently coercing to `null`.
+    - Authoritative operational timestamp validation: enforces non-empty, finite ISO timestamps via `Date.parse` and `Number.isFinite`.
+  - **Operational Frontend Integration (`DispatchPanel` & `OperationsWorkspace`)**:
+    - Stale mutation notice preservation: if a candidate becomes unavailable, the notice *"Dispatch could not be completed. This unit is no longer available. Candidates have been refreshed."* persists across the subsequent workspace and candidate refresh.
+    - Reassignment progression notice: *"Reassignment is no longer allowed. The current assignment may have already progressed."* is preserved and displayed in the Assigned Response state.
+    - Truthful unranked telemetry: displays vehicle last-known position when incident coordinates are not recorded.
+    - Defensive date formatting preventing `NaNd ago` or `Invalid Date`.
+    - Serialized queued workspace refresh guaranteeing post-mutation state reconciliation.
 
 ### What is Deferred to Subsequent Phases:
-- **Phase 6**: Capability-matching dispatch engine, automatic assignment & scoring/ranking
 - **Phase 7**: Worker PWA, live GPS broadcasting, realtime telemetry
 - **Phase 8**: Motorist breakdown location verification & GPS capture
 - **Phase 9**: Twilio / Vapi automated voice intake & SMS gateway
@@ -91,7 +108,7 @@ The application separates operational concerns into distinct surfaces with serve
 
 ### Operator Desktop Surfaces (`(operator)` Route Group)
 Desktop-first layout shell with persistent header and dynamic navigation:
-- `/operations` — Unified Operational Workspace (Mapbox map, queue, context panel; authenticated `admin` & `operator`)
+- `/operations` — Unified Operational Workspace (Mapbox map, queue, context panel, DispatchPanel; authenticated `admin` & `operator`)
 - `/incidents` — Operational Incidents Queue (Real database-backed queue with lifecycle and status filters; authenticated `admin` & `operator`)
 - `/incidents/new` — Roadside Incident Intake (Validated manual intake form; authenticated `admin` & `operator`)
 - `/incidents/[id]` — Incident Detail & State Machine Transition Record (Detail view and transition controls; authenticated `admin` & `operator`)
@@ -146,6 +163,7 @@ NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=pk.your_mapbox_public_token
    - `supabase/migrations/20260929120000_phase3_spatial_and_capabilities.sql`
    - `supabase/migrations/20260929140000_phase4_incident_state_machine.sql`
    - `supabase/migrations/20260929150000_phase5_operations_map_snapshot.sql`
+   - `supabase/migrations/20260930060000_phase6_dispatch_engine.sql`
 3. In the Supabase Dashboard under **Authentication → Users**, create three demo accounts:
    - `admin@matos.local`
    - `operator@matos.local`
@@ -154,7 +172,7 @@ NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=pk.your_mapbox_public_token
 4. In the Supabase **SQL Editor**, execute `supabase/seed.sql` to seed demo organization, vehicles with coordinates, capabilities, and synthetic demo incident.
 
 ### 4. Run Verification Suites
-Validate all security, spatial schema, state machine, and operational mapping rules:
+Validate all security, spatial schema, state machine, mapping, and dispatch engine rules:
 
 ```bash
 # Phase 2 Security & Authentication verification (89 checks)
@@ -168,10 +186,13 @@ node tests/phase4-incident-verification.mjs
 
 # Phase 5 Operational Mapping & Fleet Telemetry verification (257 checks)
 node tests/phase5-operations-map-verification.mjs
+
+# Phase 6 Capability-Aware Matching & Dispatch Engine verification (145 checks)
+node tests/phase6-dispatch-verification.mjs
 ```
 
 > **Note on Database Structural Verification Scripts**:
-> `supabase/verify_phase3.sql`, `supabase/verify_phase4.sql`, and `supabase/verify_phase5.sql` are provided for manual execution in the Supabase SQL Editor for catalog-level expression and privilege inspection. In this implementation environment, static and build verifications have been executed green; `verify_phase5.sql` is provided for manual SQL Editor verification and has not been executed live.
+> `supabase/verify_phase3.sql`, `supabase/verify_phase4.sql`, `supabase/verify_phase5.sql`, and `supabase/verify_phase6.sql` are non-destructive catalog inspection scripts provided for manual execution in the Supabase SQL Editor. In this implementation environment, `verify_phase6.sql` has been updated with catalog privilege assertions across all Phase 6 RPCs but has not been executed live.
 
 ### 5. Run the Development Server
 ```bash
@@ -179,13 +200,23 @@ npm run dev
 ```
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-### 6. Build for Production
-To validate TypeScript types, linting, and compile the production bundle:
+### 6. Verification Quality Gates & Build Status
+To validate code quality, TypeScript types, and compilation:
 ```bash
+# Code Style & Linting (0 errors, 0 warnings)
 npm run lint
+
+# TypeScript Typecheck (0 errors)
 npx tsc --noEmit
+
+# Standard Next.js Production Build
 npm run build
 ```
+
+> **Build Status Clarification**:
+> Static verification (756 checks total across Phases 2–6), linting (`0 errors, 0 warnings`), and TypeScript type checking (`0 errors`) all pass cleanly.
+> The standard `npm run build` (`next build` with Turbopack) passed successfully during final verification.
+> `package.json` retains the standard `"build": "next build"` command.
 
 ---
 
@@ -194,12 +225,12 @@ npm run build
 ```
 matos-roadside-operations/
 ├── docs/                                  # Architectural documentation
-│   └── architecture.md                    # Tenancy, Auth, Spatial, State Machine & Mapping Architecture
+│   └── architecture.md                    # Tenancy, Auth, Spatial, State Machine, Mapping & Dispatch Architecture
 ├── src/
 │   ├── app/                               # Next.js App Router routes & layouts
 │   │   ├── (operator)/                    # Operator desktop shell route group
 │   │   │   ├── layout.tsx                 # Server fail-closed operator layout
-│   │   │   ├── operations/                # Unified operational mapping workspace
+│   │   │   ├── operations/                # Unified operational mapping & dispatch workspace
 │   │   │   │   └── page.tsx               # Server Component loading operational snapshot
 │   │   │   ├── incidents/                 # Database-backed incident queues & inspection
 │   │   │   │   ├── page.tsx               # Operational queue with lifecycle/status filters
@@ -219,18 +250,22 @@ matos-roadside-operations/
 │   │   │   └── login-form.tsx             # Email-only demo fill; manual password entry
 │   │   ├── globals.css                    # Tailwind CSS imports & theme
 │   │   ├── layout.tsx                     # Root HTML layout
-│   │   └── page.tsx                       # Phase 5 Architecture index & route directory
+│   │   └── page.tsx                       # Phase 6 Architecture index & route directory
 │   ├── components/                        # Reusable UI & surface components
-│   │   ├── operations/                    # Phase 5 Operational workspace components
-│   │   │   ├── operations-workspace.tsx   # Client coordinator & filter-selection reconciliation
+│   │   ├── operations/                    # Phase 5 & 6 Operational workspace components
+│   │   │   ├── operations-workspace.tsx   # Client coordinator & serialized queued refresh
 │   │   │   ├── incident-queue.tsx         # Incident queue panel with filters & search
 │   │   │   ├── operations-map.tsx         # Mapbox GL JS map component with custom markers
-│   │   │   └── operations-context-panel.tsx # Context detail panel with truthful last-known telemetry
+│   │   │   ├── operations-context-panel.tsx # Context detail panel with dispatch integration
+│   │   │   └── dispatch-panel.tsx         # DispatchPanel with candidate list & confirmation
 │   │   ├── incidents/                     # Incident management components
 │   │   ├── operator/                      # Operator header & fail-closed navigation tabs
 │   │   ├── ui/                            # Base primitives (Button, Badge, Card, Panels)
 │   │   └── worker/                        # Genuine worker header components
 │   ├── lib/                               # Foundation utilities & integration
+│   │   ├── dispatch/                      # Phase 6 Dispatch engine actions & data loader
+│   │   │   ├── actions.ts                 # Server actions for dispatch and reassignment
+│   │   │   └── data.ts                    # Candidate loader, execution RPC callers & fail-closed validation
 │   │   ├── operations/                    # Operational mapping actions and data loader
 │   │   │   ├── actions.ts                 # Server action for manual snapshot refresh
 │   │   │   └── data.ts                    # Authoritative snapshot loader & fail-closed validation
@@ -246,16 +281,19 @@ matos-roadside-operations/
 │   │   ├── 20260928190000_phase2_core_schema_and_rls.sql
 │   │   ├── 20260929120000_phase3_spatial_and_capabilities.sql
 │   │   ├── 20260929140000_phase4_incident_state_machine.sql
-│   │   └── 20260929150000_phase5_operations_map_snapshot.sql
+│   │   ├── 20260929150000_phase5_operations_map_snapshot.sql
+│   │   └── 20260930060000_phase6_dispatch_engine.sql
 │   ├── seed.sql                           # Demo org, vehicles, capabilities & synthetic incident
 │   ├── verify_phase3.sql                  # Phase 3 structural verification script
 │   ├── verify_phase4.sql                  # Phase 4 structural verification script
-│   └── verify_phase5.sql                  # Phase 5 structural verification script (ACL catalog check)
+│   ├── verify_phase5.sql                  # Phase 5 structural verification script
+│   └── verify_phase6.sql                  # Phase 6 structural verification script (ACL catalog check)
 ├── tests/                                 # Verification suites
 │   ├── security-verification.mjs          # Phase 2 security verification (89 checks)
 │   ├── phase3-spatial-verification.mjs    # Phase 3 spatial & capability verification (95 checks)
 │   ├── phase4-incident-verification.mjs   # Phase 4 incident state machine verification (170 checks)
-│   └── phase5-operations-map-verification.mjs # Phase 5 operational mapping verification (257 checks)
+│   ├── phase5-operations-map-verification.mjs # Phase 5 operational mapping verification (257 checks)
+│   └── phase6-dispatch-verification.mjs   # Phase 6 dispatch engine verification (145 checks)
 ├── .env.example                           # Environment variable specification
 ├── package.json
 └── tsconfig.json
@@ -269,8 +307,8 @@ matos-roadside-operations/
 - **Phase 2**: Database, Tenancy, Authentication & Authorization Foundation (**Completed — Statically Verified: 89 passed / 0 failed**)
 - **Phase 3**: Core PostgreSQL Schema & PostGIS Spatial Extensions (**Completed — Statically Verified: 95 passed / 0 failed; DB verification script provided**)
 - **Phase 4**: Incident Management & Operational State Machine (**Completed — Statically Verified: 170 passed / 0 failed; DB verification script provided**)
-- **Phase 5**: Operational Mapping & Fleet Telemetry Foundation (**Completed — Statically Verified: 257 passed / 0 failed; DB verification script provided for manual execution**)
-- **Phase 6**: Capability-Aware Matching & Dispatch Engine (Deferred)
+- **Phase 5**: Operational Mapping & Fleet Telemetry Foundation (**Completed — Statically Verified: 257 passed / 0 failed; DB verification script provided**)
+- **Phase 6**: Capability-Aware Matching & Dispatch Engine (**Completed — Statically Verified: 145 passed / 0 failed; DB verification script provided for manual execution**)
 - **Phase 7**: Response Worker PWA & GPS Tracking (Deferred)
 - **Phase 8**: Motorist Temporary SMS Location Confirmation (Deferred)
 - **Phase 9**: Twilio / Vapi Automated Voice Intake & SMS Gateway (Deferred)

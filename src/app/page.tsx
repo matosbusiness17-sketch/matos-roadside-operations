@@ -8,7 +8,7 @@ export default function Home() {
     {
       name: 'Operations Workspace',
       path: '/operations',
-      desc: 'Unified three-region operational mapping workspace (Queue, PostGIS Map, Detail Panel).',
+      desc: 'Unified three-region operational mapping and dispatch workspace (Queue, PostGIS Map, Detail & Dispatch Panel).',
       badge: 'Core Workspace',
       access: 'Admin & Operator (Statically Verified)',
     },
@@ -82,11 +82,11 @@ export default function Home() {
             <div className="flex items-center gap-2">
               <span className="font-bold text-base sm:text-lg tracking-tight">MATOS SYSTEMS</span>
               <Badge variant="outline" className="border-slate-700 bg-slate-800 text-slate-300 text-[10px] font-mono">
-                PHASE 5 OPERATIONAL MAPPING
+                PHASE 6 CAPABILITY-AWARE DISPATCH
               </Badge>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
-              Roadside Operations & Dispatch System — Operational Mapping & Fleet Telemetry Foundation
+              Roadside Operations & Dispatch System — Capability-Aware Matching & Dispatch Engine
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -109,7 +109,7 @@ export default function Home() {
               Application Architecture & Security Boundaries
             </h1>
             <p className="text-xs text-slate-600 mt-1 max-w-3xl">
-              Phase 5 establishes the authoritative operational mapping workspace (/operations) with read-only operational snapshot RPC, aggregate-level deterministic incident and vehicle ordering, PostGIS coordinate derivation, fail-closed data validation without data fabrication, and real filter-driven selection clearing.
+              Phase 6 establishes the authoritative capability-aware matching and dispatch engine with deterministic PostGIS proximity ranking, concurrency protection via partial unique indexes, atomic initial dispatch and reassignment transactions, fail-closed contract validation, and preserved stale-conflict / reassignment mutation notices.
             </p>
           </div>
 
@@ -118,7 +118,7 @@ export default function Home() {
               <span className="text-slate-500 font-medium">Implementation Status</span>
               <div className="font-semibold text-slate-900 flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 inline-block" />
-                Phase 5 Complete — Statically Verified (257 passed / 0 failed)
+                Phase 6 Complete — Statically Verified (145 passed / 0 failed)
               </div>
             </div>
             <div className="rounded border border-slate-200 bg-white p-3 space-y-1">
@@ -132,9 +132,9 @@ export default function Home() {
               </div>
             </div>
             <div className="rounded border border-slate-200 bg-white p-3 space-y-1">
-              <span className="text-slate-500 font-medium">State Machine & Operational Workspace</span>
+              <span className="text-slate-500 font-medium">Dispatch Engine & Workspace</span>
               <div className="font-semibold text-slate-900">
-                Operational Snapshot RPC + Synchronized Workspace
+                Capability Matching + Atomic Dispatch & Reassignment
               </div>
             </div>
           </div>
@@ -227,32 +227,37 @@ export default function Home() {
           <Card className="border-slate-200 bg-white">
             <CardHeader className="p-5">
               <CardTitle className="text-sm font-semibold text-slate-900">
-                Phase 5 Architecture & Static Verification Summary
+                Phase 6 Architecture & Verification Summary
               </CardTitle>
-              <CardDescription className="text-xs">
-                Static verification suites validate Phase 2 auth/security boundaries (89 checks passed), Phase 3 spatial/capability extensions (95 checks passed), Phase 4 incident state machine (170 checks passed), and Phase 5 operational mapping & fleet telemetry foundation (257 checks passed). Database structural verification script provided at <code className="font-mono">supabase/verify_phase5.sql</code> for manual Supabase SQL Editor execution (provided for manual execution; not executed live in this environment).
+              <CardDescription className="text-xs space-y-1">
+                <span>
+                  Static verification suites validate Phase 2 auth/security boundaries (89 checks passed), Phase 3 spatial/capability extensions (95 checks passed), Phase 4 incident state machine (170 checks passed), Phase 5 operational mapping & fleet telemetry foundation (257 checks passed), and Phase 6 capability-aware matching & dispatch engine (145 checks passed). Total static verification: <strong>756 passed / 0 failed</strong>.
+                </span>
+                <span className="block text-slate-500">
+                  Standard Next.js production build passed successfully during final verification. Manual structural SQL verifier updated at <code className="font-mono">supabase/verify_phase6.sql</code> (provided for manual execution; not executed live in this environment).
+                </span>
               </CardDescription>
             </CardHeader>
             <CardContent className="p-5 pt-0 space-y-3 text-xs text-slate-600 leading-normal">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
                 <div className="rounded border border-emerald-200 bg-emerald-50/50 p-3">
                   <span className="font-semibold text-emerald-900 block mb-1">
-                    ✓ Statically Verified Foundations (89 P2 + 95 P3 + 170 P4 + 257 P5 Checks)
+                    ✓ Statically Verified Foundations (756 Total Checks: 89 P2 + 95 P3 + 170 P4 + 257 P5 + 145 P6)
                   </span>
                   <ul className="list-disc list-inside space-y-0.5 text-emerald-800 text-[11px]">
-                    <li>Authoritative read-only operational snapshot RPC (<code className="font-mono">get_operations_map_snapshot()</code>)</li>
-                    <li>Aggregate-level deterministic incident ordering (priority critical &gt; high &gt; standard &gt; low, oldest created_at ASC, id ASC inside jsonb_agg)</li>
-                    <li>Aggregate-level deterministic vehicle ordering (callsign ASC, id ASC inside jsonb_agg)</li>
-                    <li>Session-derived tenancy and role check strictly permitting admin and operator roles only (worker access rejected)</li>
-                    <li>Exact 7 active operational incident statuses returned; terminal statuses (completed, cancelled, unable_to_complete) strictly excluded</li>
-                    <li>Active fleet scoping (is_active = true) with capability aggregation from service_capabilities</li>
-                    <li>PostGIS coordinate derivation via ST_X/ST_Y with missing-location tolerance for unmapped entities</li>
-                    <li>Execution revoked from PUBLIC and anon; granted exclusively to authenticated</li>
-                    <li>Fail-closed data validation in data.ts with zero timestamp or phone fabrication</li>
-                    <li>Unified three-region operational workspace (/operations) synchronizing queue, map, and context panel</li>
-                    <li>Real filter-driven selection clearing: hidden incidents are cleared from state rather than merely masked</li>
-                    <li>Truthful last-known location telemetry: vehicle positions show the latest stored location and are not a live GPS feed</li>
-                    <li>Non-destructive manual refresh action with error retention and zero polling/WebSockets</li>
+                    <li>Concurrency protection via 5 partial unique indexes (<code className="font-mono">idx_uq_wva_active_worker</code>, <code className="font-mono">idx_uq_wva_active_vehicle</code>, <code className="font-mono">idx_uq_assignments_active_incident</code>, <code className="font-mono">idx_uq_assignments_active_worker</code>, <code className="font-mono">idx_uq_assignments_active_vehicle</code>)</li>
+                    <li>Assignment mutation lockdown: direct INSERT/UPDATE policies dropped, table mutations revoked from <code className="font-mono">authenticated</code> and <code className="font-mono">anon</code>; SELECT visibility preserved</li>
+                    <li>Authoritative read-only candidate evaluation RPC (<code className="font-mono">get_dispatch_candidates(UUID)</code>) with session-derived tenant and role (admin/operator only; workers rejected)</li>
+                    <li>Deterministic PostGIS proximity ranking (<code className="font-mono">ST_Distance</code> ASC, callsign ASC, worker_id ASC) inside final aggregate</li>
+                    <li>Capability matching: vehicle row in <code className="font-mono">vehicle_capabilities</code> and active referenced catalogue record (<code className="font-mono">service_capabilities.is_active = true</code>)</li>
+                    <li>Atomic initial dispatch RPC (<code className="font-mono">dispatch_incident(UUID, UUID, UUID)</code>) with row locking (<code className="font-mono">FOR UPDATE</code>), shift binding check, capability match, and transition to <code className="font-mono">dispatched</code></li>
+                    <li>Atomic reassignment RPC (<code className="font-mono">reassign_incident(...)</code>) with row locking (<code className="font-mono">FOR UPDATE</code>), current assignment cancellation without <code className="font-mono">completed_at</code> fabrication, replacement assignment creation, and retained <code className="font-mono">dispatched</code> status</li>
+                    <li>Fail-closed data validation in <code className="font-mono">data.ts</code>: required contract keys checked for property presence, strict nullable fields without silent null coercion, and Date.parse finite timestamp validation</li>
+                    <li>Preserved stale-conflict notice across refresh: <code className="font-mono">&quot;Dispatch could not be completed. This unit is no longer available. Candidates have been refreshed.&quot;</code></li>
+                    <li>Preserved reassignment progression notice: <code className="font-mono">&quot;Reassignment is no longer allowed. The current assignment may have already progressed.&quot;</code> rendered in Assigned Response view</li>
+                    <li>Truthful unranked vehicle telemetry when incident location coordinates are not recorded</li>
+                    <li>Defensive UI date formatting preventing <code className="font-mono">NaNd ago</code> or <code className="font-mono">Invalid Date</code></li>
+                    <li>OperationsWorkspace serialized queued refresh guaranteeing post-mutation state reconciliation</li>
                   </ul>
                 </div>
 
@@ -261,9 +266,8 @@ export default function Home() {
                     ⊗ Boundary Policy & Deferred Phases
                   </span>
                   <ul className="list-disc list-inside space-y-0.5 text-slate-600 text-[11px]">
-                    <li><strong>Allowed:</strong> Read-only operational map snapshots, server-action refresh, and synthetic development seed</li>
+                    <li><strong>Allowed:</strong> Capability-aware candidate evaluation, PostGIS proximity ranking, atomic operator dispatch, atomic operator reassignment, and synthetic development seed</li>
                     <li><strong>Prohibited:</strong> Live GPS streaming, worker geolocation broadcasting, automatic polling, or data fabrication</li>
-                    <li>Capability-matching dispatch engine, automatic assignment & scoring/ranking (Phase 6 — Deferred)</li>
                     <li>Worker PWA, offline sync & device GPS broadcast (Phase 7 — Deferred)</li>
                     <li>Customer GPS capture & token lookup (Phase 8 — Deferred)</li>
                     <li>Twilio / Vapi telephony & automated intake (Phase 9 — Deferred)</li>
@@ -278,7 +282,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-white py-4 px-6 text-center text-xs text-slate-500">
-        Matos Systems — Roadside Assistance Operations & Dispatch System • Phase 5 Operational Mapping & Fleet Telemetry Foundation
+        Matos Systems — Roadside Assistance Operations & Dispatch System • Phase 6 Capability-Aware Matching & Dispatch Engine
       </footer>
     </div>
   );

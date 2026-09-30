@@ -19,6 +19,7 @@ interface OperationsMapProps {
   mapboxToken: string;
   isMapboxConfigured: boolean;
   fitTrigger: number;
+  highlightedDispatchVehicleId?: string | null;
 }
 
 function hasValidCoordinates<T extends { longitude: number | null; latitude: number | null }>(
@@ -61,6 +62,7 @@ export function OperationsMap({
   mapboxToken,
   isMapboxConfigured,
   fitTrigger,
+  highlightedDispatchVehicleId,
 }: OperationsMapProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -207,13 +209,22 @@ export function OperationsMap({
       }
 
       const isSelected = selection?.type === 'vehicle' && selection.id === veh.id;
+      const isHighlighted = highlightedDispatchVehicleId === veh.id;
 
       const el = document.createElement('button');
       el.type = 'button';
       el.className = `group relative flex items-center justify-center cursor-pointer transition-transform duration-150 focus:outline-hidden ${
-        isSelected ? 'z-30 scale-125' : 'z-10 hover:scale-110'
+        isSelected || isHighlighted ? 'z-30 scale-125' : 'z-10 hover:scale-110'
       }`;
       el.setAttribute('aria-label', `Unit ${veh.callsign}`);
+
+      const borderColor = isSelected ? '#f59e0b' : isHighlighted ? '#06b6d4' : '#94a3b8';
+      const outline = isSelected
+        ? '3px solid rgba(245, 158, 11, 0.5)'
+        : isHighlighted
+        ? '3px solid rgba(6, 182, 212, 0.6)'
+        : 'none';
+      const bg = isSelected ? '#0f172a' : isHighlighted ? '#082f49' : '#1e293b';
 
       // Vehicle Marker Graphic: High-contrast slate unit badge with antenna icon
       el.innerHTML = `
@@ -221,7 +232,7 @@ export function OperationsMap({
           display: flex;
           align-items: center;
           gap: 4px;
-          background: ${isSelected ? '#0f172a' : '#1e293b'};
+          background: ${bg};
           color: #f8fafc;
           padding: 3px 6px;
           border-radius: 9999px;
@@ -229,8 +240,8 @@ export function OperationsMap({
           font-size: 11px;
           font-weight: 700;
           box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
-          border: 2px solid ${isSelected ? '#f59e0b' : '#94a3b8'};
-          outline: ${isSelected ? '3px solid rgba(245, 158, 11, 0.5)' : 'none'};
+          border: 2px solid ${borderColor};
+          outline: ${outline};
         ">
           <span style="font-size: 12px; line-height: 1;">⛟</span>
           <span>${veh.callsign}</span>
@@ -325,7 +336,7 @@ export function OperationsMap({
       fitOperationalArea();
       hasFittedInitialRef.current = true;
     }
-  }, [incidents, vehicles, selection, isMapReady, onSelectIncident, onSelectVehicle, fitOperationalArea]);
+  }, [incidents, vehicles, selection, highlightedDispatchVehicleId, isMapReady, onSelectIncident, onSelectVehicle, fitOperationalArea]);
 
   // Focus on selected incident when selected and coordinates exist
   useEffect(() => {

@@ -346,3 +346,135 @@ export type OperationsSnapshotResult =
       };
     };
 
+/**
+ * Phase 6: Capability-Aware Matching & Dispatch Engine Types
+ */
+
+export type DispatchState =
+  | 'initial_dispatch'
+  | 'reassignment'
+  | 'assigned_locked'
+  | 'unavailable';
+
+export interface DispatchRankedCandidate {
+  worker_id: string;
+  worker_name: string;
+  vehicle_id: string;
+  callsign: string;
+  registration_number: string | null;
+  distance_meters: number;
+  vehicle_location_updated_at: string | null;
+  required_capability_matched: boolean;
+}
+
+export interface DispatchUnrankedCandidate {
+  worker_id: string;
+  worker_name: string;
+  vehicle_id: string;
+  callsign: string;
+  registration_number: string | null;
+  distance_meters: null;
+  vehicle_location_updated_at: string | null;
+  required_capability_matched: boolean;
+  ranking_reason: 'vehicle_location_unavailable' | 'incident_location_unavailable';
+}
+
+export type DispatchCandidate = DispatchRankedCandidate | DispatchUnrankedCandidate;
+
+export interface DispatchCurrentAssignment {
+  id: string;
+  status: AssignmentStatus;
+  worker_id: string;
+  worker_name: string;
+  vehicle_id: string;
+  callsign: string;
+  registration_number: string | null;
+  assigned_at: string;
+}
+
+export interface DispatchIncidentContext {
+  id: string;
+  reference_number: string;
+  status: IncidentStatus;
+  required_capability: {
+    id: string;
+    code: string;
+    name: string;
+  } | null;
+  has_location: boolean;
+}
+
+export interface DispatchContext {
+  generated_at: string;
+  dispatch_state: DispatchState;
+  incident: DispatchIncidentContext;
+  current_assignment: DispatchCurrentAssignment | null;
+  ranking_available: boolean;
+  ranked_candidates: DispatchRankedCandidate[];
+  unranked_candidates: DispatchUnrankedCandidate[];
+}
+
+export type DispatchCandidatesErrorCode =
+  | 'UNAUTHORIZED'
+  | 'FORBIDDEN'
+  | 'NOT_DISPATCHABLE'
+  | 'SNAPSHOT_UNAVAILABLE'
+  | 'INVALID_RESPONSE';
+
+export type DispatchCandidatesResult =
+  | {
+      success: true;
+      context: DispatchContext;
+    }
+  | {
+      success: false;
+      error: {
+        code: DispatchCandidatesErrorCode;
+        message?: string;
+      };
+    };
+
+export type DispatchMutationErrorCode =
+  | 'UNAUTHORIZED'
+  | 'FORBIDDEN'
+  | 'NOT_DISPATCHABLE'
+  | 'CANDIDATE_NO_LONGER_ELIGIBLE'
+  | 'DISPATCH_CONFLICT'
+  | 'REASSIGNMENT_NOT_ALLOWED'
+  | 'INVALID_RESPONSE'
+  | 'DISPATCH_UNAVAILABLE';
+
+export interface DispatchSuccessPayload {
+  success: true;
+  assignment_id: string;
+  incident_id: string;
+  reference_number: string;
+  incident_status: 'dispatched';
+  worker_id: string;
+  vehicle_id: string;
+  assigned_at: string;
+}
+
+export interface ReassignSuccessPayload {
+  success: true;
+  incident_id: string;
+  reference_number: string;
+  old_assignment_id: string;
+  new_assignment_id: string;
+  new_worker_id: string;
+  new_vehicle_id: string;
+  incident_status: 'dispatched';
+}
+
+export type DispatchMutationResult =
+  | {
+      success: true;
+      data: DispatchSuccessPayload | ReassignSuccessPayload;
+    }
+  | {
+      success: false;
+      error: {
+        code: DispatchMutationErrorCode;
+        message?: string;
+      };
+    };

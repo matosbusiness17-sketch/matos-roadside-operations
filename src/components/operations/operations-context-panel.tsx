@@ -9,6 +9,7 @@ import {
   IncidentPriority,
   IncidentStatus,
 } from '@/types';
+import { DispatchPanel } from '@/components/operations/dispatch-panel';
 
 interface OperationsContextPanelProps {
   selection: OperationsSelection;
@@ -17,6 +18,8 @@ interface OperationsContextPanelProps {
   generatedAt: string;
   onClearSelection: () => void;
   onFitOperationalArea: () => void;
+  onRefreshWorkspace: () => Promise<void>;
+  onHighlightVehicle: (vehicleId: string | null) => void;
 }
 
 function getPriorityBadgeClass(priority: IncidentPriority): string {
@@ -87,6 +90,8 @@ export function OperationsContextPanel({
   generatedAt,
   onClearSelection,
   onFitOperationalArea,
+  onRefreshWorkspace,
+  onHighlightVehicle,
 }: OperationsContextPanelProps) {
   // 1. Resolve selected entity
   const selectedIncident =
@@ -146,6 +151,16 @@ export function OperationsContextPanel({
               {selectedIncident.service_type.replace(/_/g, ' ')}
             </span>
           </div>
+
+          {/* Phase 6 Capability-Aware Dispatch & Reassignment Panel */}
+          {(selectedIncident.status === 'ready_for_dispatch' ||
+            selectedIncident.status === 'dispatched') && (
+            <DispatchPanel
+              incident={selectedIncident}
+              onRefreshWorkspace={onRefreshWorkspace}
+              onHighlightVehicle={onHighlightVehicle}
+            />
+          )}
 
           {/* Customer Details */}
           <div className="rounded-md border border-slate-200 bg-slate-50/50 p-2.5 space-y-1">
