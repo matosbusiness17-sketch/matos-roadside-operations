@@ -7,6 +7,7 @@ import type { WorkerActiveAssignment, WorkerLifecycleAction } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { WorkerLocationControl } from '@/components/worker/worker-location-control';
 
 export interface LifecycleActionConfig {
   action: WorkerLifecycleAction;
@@ -346,6 +347,11 @@ export function WorkerAssignmentPanel({ assignment }: WorkerAssignmentPanelProps
                 </div>
               )}
             </div>
+          )}
+
+          {/* Assigned vehicle location telemetry (omitted if vehicle_id is null) */}
+          {assignment.vehicle_id !== null && (
+            <WorkerLocationControl />
           )}
 
           {/* Required capability (omitted if null) */}
