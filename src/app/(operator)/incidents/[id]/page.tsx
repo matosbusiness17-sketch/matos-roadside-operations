@@ -5,6 +5,7 @@ import { getCurrentUser } from '@/lib/auth/get-user';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { IncidentTransitionControls } from '@/components/incidents/incident-transition-controls';
+import { CustomerLocationLinkControl } from '@/components/incidents/customer-location-link-control';
 import { Incident, IncidentStatus, OperationalEvent } from '@/types';
 
 export const metadata = {
@@ -319,6 +320,14 @@ export default async function IncidentDetailPage({ params }: IncidentDetailPageP
                     )}
                   </p>
                 </div>
+              </div>
+
+              {/* Customer Location Verification Link Control */}
+              <div className="pt-3 border-t border-slate-100">
+                <CustomerLocationLinkControl
+                  incidentId={incident.id}
+                  incidentStatus={incident.status}
+                />
               </div>
             </CardContent>
           </Card>
