@@ -327,6 +327,7 @@ export default async function IncidentDetailPage({ params }: IncidentDetailPageP
                 <CustomerLocationLinkControl
                   incidentId={incident.id}
                   incidentStatus={incident.status}
+                  customerPhone={incident.customer_phone}
                 />
               </div>
             </CardContent>
