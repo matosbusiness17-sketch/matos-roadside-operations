@@ -30,9 +30,6 @@ export default async function WorkerPage() {
           <h1 className="text-lg font-bold text-slate-900 tracking-tight break-words min-w-0">
             Response Worker Surface
           </h1>
-          <Badge variant="outline" className="text-[10px] font-mono shrink-0">
-            Mobile-First
-          </Badge>
         </div>
         <p className="text-xs text-slate-500 mt-1 break-words">
           Active roadside dispatch &amp; operational lifecycle controls.

@@ -35,11 +35,11 @@ export default async function OperatorLayout({
         organization={authContext.organization}
       />
       <OperatorNav userRole={role} />
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-[1680px] w-full mx-auto">
         {children}
       </main>
       <footer className="border-t border-slate-200 bg-white py-3 px-6 text-center text-xs text-slate-500">
-        Matos Systems — Roadside Operations & Dispatch System • Phase 2 Auth & RLS Foundation
+        Matos Systems — Roadside Operations & Dispatch System
       </footer>
     </div>
   );

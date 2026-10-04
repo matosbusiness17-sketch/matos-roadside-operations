@@ -70,7 +70,7 @@ export function OperatorHeader({
           <Link
             href="/worker"
             className="text-xs text-slate-300 hover:text-white px-2 py-1 rounded hover:bg-slate-800 transition-colors"
-            title="Switch to Mobile Worker Shell"
+            title="Open Worker View"
           >
             Worker View
           </Link>

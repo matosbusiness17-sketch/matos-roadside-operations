@@ -7,6 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { IncidentTransitionControls } from '@/components/incidents/incident-transition-controls';
 import { CustomerLocationLinkControl } from '@/components/incidents/customer-location-link-control';
 import { Incident, IncidentStatus, OperationalEvent } from '@/types';
+import {
+  formatIncidentStatus,
+  formatPriority,
+  formatServiceType,
+  formatLocationSource,
+} from '@/lib/formatters';
 
 export const metadata = {
   title: 'Incident Detail | Matos Systems Roadside',
@@ -73,7 +79,7 @@ export default async function IncidentDetailPage({ params }: IncidentDetailPageP
   const coordinates = parseCoordinates(incident.location);
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-6 max-w-[1480px] mx-auto">
       {/* Navigation Breadcrumb */}
       <div className="flex items-center gap-2 text-xs text-slate-500">
         <Link href="/incidents" className="hover:text-slate-900 transition-colors">
@@ -166,7 +172,7 @@ export default async function IncidentDetailPage({ params }: IncidentDetailPageP
                     Assistance Service Type
                   </span>
                   <p className="text-xs font-semibold text-slate-900 capitalize mt-0.5">
-                    {incident.service_type.replace('_', ' ')}
+                    {formatServiceType(incident.service_type)}
                   </p>
                 </div>
                 <div>
@@ -291,7 +297,7 @@ export default async function IncidentDetailPage({ params }: IncidentDetailPageP
                     Location Source
                   </span>
                   <p className="text-xs font-mono text-slate-700 mt-1">
-                    {incident.location_source ?? 'Not recorded'}
+                    {formatLocationSource(incident.location_source ?? 'Not recorded')}
                   </p>
                 </div>
 
@@ -403,9 +409,9 @@ function renderEventMetadata(eventType: string, metadata: Record<string, unknown
     return (
       <div className="mt-1.5 p-2 rounded bg-slate-50 border border-slate-200 text-[11px] font-mono text-slate-700 space-y-1">
         <div className="flex items-center gap-1.5 font-semibold">
-          <span className="text-slate-500">{prev}</span>
+          <span className="text-slate-500">{formatIncidentStatus(prev)}</span>
           <span>→</span>
-          <span className="text-slate-900">{next}</span>
+          <span className="text-slate-900">{formatIncidentStatus(next)}</span>
         </div>
         {reason && (
           <div className="text-[10px] text-slate-600 font-sans italic border-t border-slate-200 pt-1 mt-1">
@@ -419,17 +425,22 @@ function renderEventMetadata(eventType: string, metadata: Record<string, unknown
   if (eventType === 'INCIDENT_CREATED') {
     return (
       <div className="mt-1.5 p-2 rounded bg-slate-50 border border-slate-200 text-[11px] font-mono text-slate-600 space-y-0.5">
-        <div>Initial Status: <strong>{String(metadata.status || 'new')}</strong></div>
-        <div>Service: {String(metadata.service_type || 'N/A')} ({String(metadata.priority || 'standard')})</div>
+        <div>Initial Status: <strong>{formatIncidentStatus(String(metadata.status || 'new'))}</strong></div>
+        <div>Service: {formatServiceType(String(metadata.service_type || 'N/A'))} ({formatPriority(String(metadata.priority || 'standard'))})</div>
         {Boolean(metadata.has_coordinates) && <div>PostGIS Point: Recorded</div>}
       </div>
     );
   }
 
   return (
-    <pre className="mt-1.5 p-2 rounded bg-slate-50 border border-slate-200 text-[10px] font-mono text-slate-600 overflow-x-auto">
-      {JSON.stringify(metadata, null, 2)}
-    </pre>
+    <details className="mt-1.5 text-[11px] group">
+      <summary className="cursor-pointer text-slate-500 hover:text-slate-800 font-sans text-[11px] select-none py-0.5">
+        View metadata
+      </summary>
+      <pre className="mt-1 p-2 rounded bg-slate-50 border border-slate-200 text-[10px] font-mono text-slate-600 overflow-x-auto max-h-48 whitespace-pre-wrap break-all">
+        {JSON.stringify(metadata, null, 2)}
+      </pre>
+    </details>
   );
 }
 

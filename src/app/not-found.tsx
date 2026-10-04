@@ -26,12 +26,12 @@ export default function NotFound() {
               Unrecognized Resource Path
             </CardTitle>
             <CardDescription className="text-xs">
-              The requested address is not mapped to an active or approved operational route shell.
+              The requested address is not mapped to an active operational route.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-5 pt-0 space-y-4">
             <div className="rounded border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 space-y-1">
-              <span className="font-semibold text-slate-700">Approved Application Routes:</span>
+              <span className="font-semibold text-slate-700">Available Application Routes:</span>
               <ul className="list-disc list-inside space-y-1 pt-1 text-slate-600">
                 <li><Link href="/operations" className="text-slate-900 underline">/operations</Link> — Operational Workspace</li>
                 <li><Link href="/incidents" className="text-slate-900 underline">/incidents</Link> — Incident Queues</li>
@@ -47,9 +47,9 @@ export default function NotFound() {
                   Return to Operations
                 </Button>
               </Link>
-              <Link href="/" className="flex-1">
+              <Link href="/login" className="flex-1">
                 <Button className="w-full text-xs" variant="outline">
-                  System Index
+                  Sign In
                 </Button>
               </Link>
             </div>

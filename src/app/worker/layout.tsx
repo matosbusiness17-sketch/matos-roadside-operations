@@ -39,7 +39,7 @@ export default async function WorkerLayout({
           {children}
         </main>
         <footer className="border-t border-slate-100 p-3 text-center text-[11px] text-slate-400">
-          Matos Systems Field Worker • Mobile Interface Shell
+          Matos Systems Field Worker • Secure Operational Access
         </footer>
       </div>
     </div>

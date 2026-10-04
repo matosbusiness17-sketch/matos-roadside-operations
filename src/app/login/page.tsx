@@ -46,11 +46,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
             <div className="pt-2 border-t border-slate-200 flex flex-col gap-1.5 text-xs text-slate-500">
               <span className="font-medium text-slate-700">Explore Without Session:</span>
-              <div className="flex gap-2">
-                <Link href="/" className="text-slate-900 font-semibold underline hover:text-slate-700">
-                  System Index →
-                </Link>
-                <span className="text-slate-300">|</span>
+              <div>
                 <Link href="/customer/location/demo-customer-token-123" className="text-slate-900 font-semibold underline hover:text-slate-700">
                   Customer Link Demo →
                 </Link>

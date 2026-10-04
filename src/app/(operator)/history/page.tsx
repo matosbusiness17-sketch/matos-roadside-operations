@@ -17,6 +17,11 @@ import {
   OperationalEvent,
   TERMINAL_INCIDENT_STATUSES,
 } from '@/types';
+import {
+  formatIncidentStatus,
+  formatServiceType,
+  formatDateTime,
+} from '@/lib/formatters';
 
 export const dynamic = 'force-dynamic';
 
@@ -178,7 +183,7 @@ export default async function HistoryPage() {
       {/* Main 2-Column Responsive Layout */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         {/* Left Column: Terminal Incident History */}
-        <div className="xl:col-span-7 space-y-4">
+        <div className="xl:col-span-7 2xl:col-span-8 space-y-4">
           <Card className="border-slate-200 bg-white shadow-xs">
             <CardHeader className="py-4 px-5 border-b border-slate-100">
               <div className="flex items-center justify-between">
@@ -290,7 +295,7 @@ export default async function HistoryPage() {
         </div>
 
         {/* Right Column: Recent Operational Events Audit Trail */}
-        <div className="xl:col-span-5 space-y-4">
+        <div className="xl:col-span-5 2xl:col-span-4 space-y-4">
           <Card className="border-slate-200 bg-white shadow-xs">
             <CardHeader className="py-4 px-5 border-b border-slate-100">
               <div className="flex items-center justify-between">
@@ -379,11 +384,39 @@ export default async function HistoryPage() {
                             )}
                           </div>
 
-                          {/* Truthful metadata representation */}
+                          {/* Specialized readable view for status changes */}
+                          {evt.event_type === 'INCIDENT_STATUS_CHANGED' &&
+                            evt.metadata &&
+                            typeof evt.metadata.previous_status === 'string' &&
+                            typeof evt.metadata.new_status === 'string' && (
+                              <div className="mt-1 p-2 rounded bg-slate-50 border border-slate-200 text-[11px] font-mono text-slate-700 space-y-1">
+                                <div className="flex items-center gap-1.5 font-semibold">
+                                  <span className="text-slate-500">
+                                    {formatIncidentStatus(evt.metadata.previous_status)}
+                                  </span>
+                                  <span>→</span>
+                                  <span className="text-slate-900">
+                                    {formatIncidentStatus(evt.metadata.new_status)}
+                                  </span>
+                                </div>
+                                {typeof evt.metadata.reason === 'string' && evt.metadata.reason && (
+                                  <div className="text-[10px] text-slate-600 font-sans italic border-t border-slate-200 pt-1 mt-1">
+                                    Reason: &quot;{evt.metadata.reason}&quot;
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                          {/* Collapsible raw metadata */}
                           {evt.metadata && Object.keys(evt.metadata).length > 0 ? (
-                            <pre className="mt-1.5 p-2 rounded bg-slate-50 border border-slate-200 text-[10px] font-mono text-slate-700 overflow-x-auto max-h-36 whitespace-pre-wrap break-all">
-                              {JSON.stringify(evt.metadata, null, 2)}
-                            </pre>
+                            <details className="mt-1 text-[11px] group">
+                              <summary className="cursor-pointer text-slate-500 hover:text-slate-800 font-sans text-[11px] select-none py-0.5">
+                                View metadata
+                              </summary>
+                              <pre className="mt-1 p-2 rounded bg-slate-50 border border-slate-200 text-[10px] font-mono text-slate-700 overflow-x-auto max-h-40 whitespace-pre-wrap break-all">
+                                {JSON.stringify(evt.metadata, null, 2)}
+                              </pre>
+                            </details>
                           ) : (
                             <div className="text-[10px] text-slate-400 italic">
                               No metadata recorded
@@ -403,36 +436,6 @@ export default async function HistoryPage() {
   );
 }
 
-/**
- * Format ISO datetime string truthfully without timezone distortion
- */
-function formatDateTime(isoString: string | null | undefined): string {
-  if (!isoString) return '—';
-  try {
-    const d = new Date(isoString);
-    if (isNaN(d.getTime())) return isoString;
-    return d.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    });
-  } catch {
-    return isoString;
-  }
-}
-
-/**
- * Human-readable service type helper
- */
-function formatServiceType(serviceType: string): string {
-  return serviceType
-    .split('_')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-}
 
 /**
  * Visual badge for terminal and general incident statuses using existing Badge component

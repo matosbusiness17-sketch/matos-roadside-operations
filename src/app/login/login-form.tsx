@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { env } from '@/lib/env';
 
 interface LoginFormProps {
@@ -176,13 +175,10 @@ export function LoginForm({ initialRedirectTo = '', initialError = '' }: LoginFo
       {/* Demo Email Quick-Fills (Populates email only; user must enter password) */}
       <div className="rounded border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 space-y-2">
         <div className="flex items-center justify-between">
-          <span className="font-semibold text-slate-800">Development Demo Accounts</span>
-          <Badge variant="outline" className="text-[10px] font-mono">
-            Phase 2
-          </Badge>
+          <span className="font-semibold text-slate-800">Demo Access</span>
         </div>
         <p className="text-[11px] text-slate-500">
-          Click an account to populate the operational email (password must be entered manually):
+          Choose a demo role to populate the operational email. Password entry remains manual.
         </p>
         <div className="flex flex-wrap gap-1.5 pt-1">
           <button

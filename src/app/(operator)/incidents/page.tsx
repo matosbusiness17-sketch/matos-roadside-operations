@@ -10,6 +10,11 @@ import {
   ACTIVE_INCIDENT_STATUSES,
   TERMINAL_INCIDENT_STATUSES,
 } from '@/types';
+import {
+  formatIncidentStatus,
+  formatLocationSource,
+  formatServiceType,
+} from '@/lib/formatters';
 
 export const metadata = {
   title: 'Incidents Queue | Matos Systems Roadside',
@@ -165,13 +170,13 @@ export default async function IncidentsPage({ searchParams }: IncidentsPageProps
             <Link
               key={st}
               href={`/incidents?status=${st}`}
-              className={`px-2 py-0.5 rounded font-mono transition-colors ${
+              className={`px-2 py-0.5 rounded font-sans transition-colors ${
                 statusFilter === st
                   ? 'bg-slate-900 text-white font-semibold'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              {st}
+              {formatIncidentStatus(st)}
             </Link>
           ))}
           {statusFilter && (
@@ -261,7 +266,7 @@ export default async function IncidentsPage({ searchParams }: IncidentsPageProps
                   {/* Service & Capability */}
                   <td className="py-3 px-4">
                     <div className="font-medium text-slate-900 capitalize">
-                      {incident.service_type.replace('_', ' ')}
+                      {formatServiceType(incident.service_type)}
                     </div>
                     {incident.required_capability && (
                       <div className="text-[11px] text-slate-500 font-mono">
@@ -296,8 +301,8 @@ export default async function IncidentsPage({ searchParams }: IncidentsPageProps
                       {incident.location_address}
                     </div>
                     {incident.location_source && (
-                      <div className="text-[10px] text-slate-400 font-mono uppercase">
-                        Source: {incident.location_source}
+                      <div className="text-[10px] text-slate-400 font-mono">
+                        Source: {formatLocationSource(incident.location_source)}
                       </div>
                     )}
                   </td>

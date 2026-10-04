@@ -85,7 +85,7 @@ export function OperatorNav({ userRole }: OperatorNavProps) {
   });
 
   return (
-    <nav className="bg-white border-b border-slate-200 px-4 sm:px-6">
+    <nav className="sticky top-14 z-20 bg-white border-b border-slate-200 shadow-xs px-4 sm:px-6">
       <div className="flex space-x-1 sm:space-x-4 overflow-x-auto py-2">
         {visibleItems.map((item) => {
           const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`);
